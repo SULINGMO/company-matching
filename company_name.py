@@ -157,6 +157,8 @@ def unconfirm_match():
     return jsonify({"message": f"{field or 'All'} unconfirmed for {speaker}"})
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
 
 

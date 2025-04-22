@@ -3,6 +3,9 @@ import pandas as pd
 from simhash import calculate_weighted_simhash, Simhash
 from flask_sqlalchemy import SQLAlchemy
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 app = Flask(__name__, template_folder='templates')
 
@@ -156,6 +159,4 @@ def unconfirm_match():
 if __name__ == '__main__':
     app.run(debug=True)
 
-    # TEMPORARY: Uncomment once to create the database tables
-    with app.app_context():
-        db.create_all()
+

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Company Name Matching</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    .confirmed-row {
+      background-color: #d4edda;
+    }
+
+    .highlight-100 {
+      background-color: #ffffcc;
+    }
+
+    .confirm-btn, .unconfirm-btn {
+      margin-top: 5px;
+      padding: 4px 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Upload Company Lists</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <label>Speaker List: <input type="file" name="speaker"></label><br>
+    <label>Account List: <input type="file" name="account"></label><br>
+    <label>Contact List: <input type="file" name="contact"></label><br>
+    <button type="submit">Upload</button>
+  </form>
+
+  <table id="resultTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>Speaker Company</th>
+        <th>Matched Account</th>
+        <th>Account Similarity</th>
+        <th>Matched Contact</th>
+        <th>Contact Similarity</th>
+        <th>Confirm Match</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const results = await response.json();
+      const tbody = document.querySelector('#resultTable tbody');
+      tbody.innerHTML = '';
+
+      const seenSpeakers = new Set();
+
+      results.forEach((item, index) => {
+        const speaker = item.speaker?.trim();
+        if (!speaker || seenSpeakers.has(speaker)) return;
+        seenSpeakers.add(speaker);
+
+        const row = document.createElement('tr');
+        row.setAttribute('data-index', index);
+
+        const accountSimilarity = parseFloat(item.matched_account?.similarity ?? 0);
+        const contactSimilarity = parseFloat(item.matched_contact?.similarity ?? 0);
+
+        const isFullMatch = accountSimilarity === 100 || contactSimilarity === 100;
+        const isConfirmed = (item.confirmed && (item.confirmed.account || item.confirmed.contact));
+
+        if (isFullMatch) row.classList.add('highlight-100');
+        if (isConfirmed || isFullMatch) row.classList.add('confirmed-row');
+
+        row.innerHTML = `
+          <td>${speaker}</td>
+          <td>${item.matched_account?.account || '-'}</td>
+          <td>${item.matched_account?.similarity ?? '-'}</td>
+          <td>${item.matched_contact?.contact || '-'}</td>
+          <td>${item.matched_contact?.similarity ?? '-'}</td>
+          <td>
+            <label><input type="checkbox" class="confirm-account"> Account</label><br>
+            <label><input type="checkbox" class="confirm-contact"> Contact</label><br>
+            <button type="button" class="confirm-btn">Confirm</button>
+            <button type="button" class="unconfirm-btn">Unconfirm</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+
+      document.getElementById('resultTable').style.display = 'table';
+
+      // Bind the Confirm and Unconfirm buttons after rows are added
+      bindConfirmButtons(results);
+      bindUnconfirmButtons(results);
+    });
+
+    // Function to bind confirm buttons
+    function bindConfirmButtons(results) {
+      document.querySelectorAll('.confirm-btn').forEach(button => {
+        button.addEventListener('click', async function () {
+          const row = this.closest('tr');
+          const index = row.getAttribute('data-index');
+          const data = results[index];
+
+          const confirmAccount = row.querySelector('.confirm-account').checked;
+          const confirmContact = row.querySelector('.confirm-contact').checked;
+
+          const confirmData = {
+            speaker: data.speaker,
+            account: confirmAccount ? data.matched_account?.account : null,
+            contact: confirmContact ? data.matched_contact?.contact : null
+          };
+
+          const response = await fetch('/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(confirmData)
+          });
+
+          if (response.ok) {
+            row.classList.add('confirmed-row');
+          }
+        });
+      });
+    }
+
+    // Function to bind unconfirm buttons
+    function bindUnconfirmButtons(results) {
+      document.querySelectorAll('.unconfirm-btn').forEach(button => {
+        button.addEventListener('click', async function () {
+          const row = this.closest('tr');
+          const index = row.getAttribute('data-index');
+          const data = results[index];
+
+          const unconfirmData = {
+            speaker: data.speaker
+          };
+
+          const response = await fetch('/unconfirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unconfirmData)
+          });
+
+          if (response.ok) {
+            row.classList.remove('confirmed-row');
+            row.querySelector('.confirm-account').checked = false;
+            row.querySelector('.confirm-contact').checked = false;
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

@@ -71,7 +71,7 @@ def upload_file():
             similarity = 1 - bin(speaker_simhash ^ account_simhash).count('1') / 128
             if similarity > top_account_similarity:
                 top_account_similarity = similarity
-                top_account_match = {'account': account, 'similarity': round(similarity, 2)}
+                top_account_match = {'account': account, 'similarity': round(similarity * 100, 2)}
 
         top_contact_match = None
         top_contact_similarity = 0
@@ -80,7 +80,7 @@ def upload_file():
             similarity = 1 - bin(speaker_simhash ^ contact_simhash).count('1') / 128
             if similarity > top_contact_similarity:
                 top_contact_similarity = similarity
-                top_contact_match = {'contact': contact, 'similarity': round(similarity, 2)}
+                top_contact_match = {'contact': contact, 'similarity': round(similarity * 100, 2)}
 
         confirmed = confirmed_mappings.get(speaker_name, {})
 
@@ -125,23 +125,35 @@ def confirm_match():
 def unconfirm_match():
     data = request.get_json()
     speaker = data.get('speaker')
-    field = data.get('field')  # 'account' or 'contact'
+    field = data.get('field')  # optional: 'account' or 'contact'
 
-    if not field:  # Check if 'field' is None or empty
-        return jsonify({"error": "Field parameter ('account' or 'contact') is required."}), 400
+    if not speaker:
+        return jsonify({"error": "Speaker is required"}), 400
 
-    if speaker in confirmed_mappings and field in confirmed_mappings[speaker]:
-        del confirmed_mappings[speaker][field]
-        if not confirmed_mappings[speaker]:  # If no more fields, remove the speaker
-            del confirmed_mappings[speaker]
+    if speaker not in confirmed_mappings:
+        return jsonify({"error": f"No mapping found for {speaker}."}), 404
 
-        with open('confirmed_mappings.json', 'w') as f:
-            json.dump(confirmed_mappings, f, indent=2)
+    fields_to_remove = []
 
-        return jsonify({"message": f"{field.capitalize()} unconfirmed for {speaker}"})
-    else:
-        return jsonify({"error": f"No such mapping found for {speaker} with {field}."}), 404
+    if field:  # Only one field to unconfirm
+        if field in confirmed_mappings[speaker]:
+            fields_to_remove.append(field)
+        else:
+            return jsonify({"error": f"{field} not found for {speaker}."}), 404
+    else:  # No field specified: unconfirm both
+        fields_to_remove = list(confirmed_mappings[speaker].keys())
 
+    for f in fields_to_remove:
+        del confirmed_mappings[speaker][f]
+
+    if not confirmed_mappings[speaker]:  # Remove speaker if empty
+        del confirmed_mappings[speaker]
+
+    with open('confirmed_mappings.json', 'w') as f:
+        json.dump(confirmed_mappings, f, indent=2)
+
+    removed_fields = ', '.join([f.capitalize() for f in fields_to_remove])
+    return jsonify({"message": f"{removed_fields} unconfirmed for {speaker}"})
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -103,13 +103,11 @@
       });
 
       document.getElementById('resultTable').style.display = 'table';
-
-      // Bind the Confirm and Unconfirm buttons after rows are added
       bindConfirmButtons(results);
       bindUnconfirmButtons(results);
     });
 
-    // Function to bind confirm buttons
+    // Confirm selected fields
     function bindConfirmButtons(results) {
       document.querySelectorAll('.confirm-btn').forEach(button => {
         button.addEventListener('click', async function () {
@@ -139,7 +137,7 @@
       });
     }
 
-    // Function to bind unconfirm buttons
+    // Unconfirm selected fields or all
     function bindUnconfirmButtons(results) {
       document.querySelectorAll('.unconfirm-btn').forEach(button => {
         button.addEventListener('click', async function () {
@@ -147,21 +145,44 @@
           const index = row.getAttribute('data-index');
           const data = results[index];
 
-          const unconfirmData = {
-            speaker: data.speaker
-          };
+          const unconfirmAccount = row.querySelector('.confirm-account').checked;
+          const unconfirmContact = row.querySelector('.confirm-contact').checked;
 
-          const response = await fetch('/unconfirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(unconfirmData)
-          });
+          // If nothing checked, unconfirm all
+          if (!unconfirmAccount && !unconfirmContact) {
+            const response = await fetch('/unconfirm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ speaker: data.speaker })
+            });
+            if (response.ok) {
+              row.classList.remove('confirmed-row');
+              row.querySelector('.confirm-account').checked = false;
+              row.querySelector('.confirm-contact').checked = false;
+            }
+            return;
+          }
 
-          if (response.ok) {
-            row.classList.remove('confirmed-row');
+          // Unconfirm individual fields
+          if (unconfirmAccount) {
+            await fetch('/unconfirm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ speaker: data.speaker, field: 'account' })
+            });
             row.querySelector('.confirm-account').checked = false;
+          }
+
+          if (unconfirmContact) {
+            await fetch('/unconfirm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ speaker: data.speaker, field: 'contact' })
+            });
             row.querySelector('.confirm-contact').checked = false;
           }
+
+          row.classList.remove('confirmed-row');
         });
       });
     }

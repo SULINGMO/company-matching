@@ -1,4 +1,4 @@
-ffrom flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template
 import pandas as pd
 from simhash import calculate_weighted_simhash, Simhash
 from flask_sqlalchemy import SQLAlchemy

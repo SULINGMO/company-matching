@@ -84,12 +84,15 @@ def upload_file():
 
         confirmed = confirmed_mappings.get(speaker_name, {})
 
-        results.append({
-            'speaker': speaker_name,
-            'matched_account': top_account_match,
-            'matched_contact': top_contact_match,
-            'confirmed': confirmed
-        })
+        # Only include if either similarity is above 70%
+        if (top_account_match and top_account_match['similarity'] > 70) or \
+           (top_contact_match and top_contact_match['similarity'] > 70):
+            results.append({
+                'speaker': speaker_name,
+                'matched_account': top_account_match,
+                'matched_contact': top_contact_match,
+                'confirmed': confirmed
+            })
 
     results.sort(key=lambda x: max(
         x['matched_account']['similarity'] if x['matched_account'] else 0,

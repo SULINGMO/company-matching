@@ -3,38 +3,128 @@
 <head>
   <title>Company Name Matching</title>
   <style>
+    :root {
+      --aibp-red: #a51916;
+      --aibp-cream: #fdfaf6;
+      --aibp-dark: #2c2c2c;
+      --aibp-light-gray: #f5f5f5;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--aibp-cream);
+      color: var(--aibp-dark);
+      margin: 20px;
+    }
+
+    h2 {
+      color: var(--aibp-red);
+    }
+
+    form {
+      background-color: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    input[type="file"] {
+      margin-top: 5px;
+      padding: 6px;
+    }
+
+    button[type="submit"] {
+      background-color: var(--aibp-red);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #831414;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 30px;
+      background-color: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
     }
 
     th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
+      padding: 12px;
+      border: 1px solid #ddd;
       text-align: left;
     }
 
+    th {
+      background-color: var(--aibp-red);
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: var(--aibp-light-gray);
+    }
+
     .confirmed-row {
-      background-color: #d4edda;
+      background-color: #eaf4ea !important;
     }
 
     .highlight-100 {
-      background-color: #ffffcc;
+      background-color: #fffbe6 !important;
     }
 
     .confirm-btn, .unconfirm-btn {
-      margin-top: 5px;
-      padding: 4px 8px;
+      margin-top: 6px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+
+    .confirm-btn {
+      background-color: var(--aibp-red);
+      color: white;
+    }
+
+    .confirm-btn:hover {
+      background-color: #831414;
+    }
+
+    .unconfirm-btn {
+      background-color: #666;
+      color: white;
+    }
+
+    .unconfirm-btn:hover {
+      background-color: #444;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 6px;
     }
   </style>
 </head>
 <body>
   <h2>Upload Company Lists</h2>
   <form id="uploadForm" enctype="multipart/form-data">
-    <label>Speaker List: <input type="file" name="speaker"></label><br>
-    <label>Account List: <input type="file" name="account"></label><br>
-    <label>Contact List: <input type="file" name="contact"></label><br>
+    <label>Speaker List: <input type="file" name="speaker"></label>
+    <label>Account List: <input type="file" name="account"></label>
+    <label>Contact List: <input type="file" name="contact"></label>
     <button type="submit">Upload</button>
   </form>
 
@@ -107,7 +197,6 @@
       bindUnconfirmButtons(results);
     });
 
-    // Confirm selected fields
     function bindConfirmButtons(results) {
       document.querySelectorAll('.confirm-btn').forEach(button => {
         button.addEventListener('click', async function () {
@@ -137,7 +226,6 @@
       });
     }
 
-    // Unconfirm selected fields or all
     function bindUnconfirmButtons(results) {
       document.querySelectorAll('.unconfirm-btn').forEach(button => {
         button.addEventListener('click', async function () {
@@ -145,44 +233,21 @@
           const index = row.getAttribute('data-index');
           const data = results[index];
 
-          const unconfirmAccount = row.querySelector('.confirm-account').checked;
-          const unconfirmContact = row.querySelector('.confirm-contact').checked;
+          const unconfirmData = {
+            speaker: data.speaker
+          };
 
-          // If nothing checked, unconfirm all
-          if (!unconfirmAccount && !unconfirmContact) {
-            const response = await fetch('/unconfirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ speaker: data.speaker })
-            });
-            if (response.ok) {
-              row.classList.remove('confirmed-row');
-              row.querySelector('.confirm-account').checked = false;
-              row.querySelector('.confirm-contact').checked = false;
-            }
-            return;
-          }
+          const response = await fetch('/unconfirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(unconfirmData)
+          });
 
-          // Unconfirm individual fields
-          if (unconfirmAccount) {
-            await fetch('/unconfirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ speaker: data.speaker, field: 'account' })
-            });
+          if (response.ok) {
+            row.classList.remove('confirmed-row');
             row.querySelector('.confirm-account').checked = false;
-          }
-
-          if (unconfirmContact) {
-            await fetch('/unconfirm', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ speaker: data.speaker, field: 'contact' })
-            });
             row.querySelector('.confirm-contact').checked = false;
           }
-
-          row.classList.remove('confirmed-row');
         });
       });
     }

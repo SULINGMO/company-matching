@@ -4,68 +4,38 @@ from simhash import calculate_weighted_simhash, Simhash
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
-load_dotenv()
 
+# Load environment variables from a .env file
+load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
 
-# PostgreSQL config (Render will set DATABASE_URL env variable)
+# Configure the SQLAlchemy part of the app instance
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Create the SQLAlchemy db instance
 db = SQLAlchemy(app)
 
-# DB Model for confirmed mappings
+# Define the ConfirmedMapping model
 class ConfirmedMapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     speaker = db.Column(db.String(255), nullable=False, unique=True)
     matched_account = db.Column(db.String(255))
     matched_contact = db.Column(db.String(255))
 
-COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina",
-    "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
-    "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
-    "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde",
-    "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China",
-    "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba",
-    "Cyprus", "Czech Republic", "Democratic Republic of the Congo", "Denmark", "Djibouti",
-    "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea",
-    "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon",
-    "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea",
-    "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia",
-    "Iran", "Iraq", "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan",
-    "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon",
-    "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar",
-    "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania",
-    "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro",
-    "Morocco", "Mozambique", "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands",
-    "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia",
-    "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea",
-    "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia",
-    "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines",
-    "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia",
-    "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands",
-    "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka",
-    "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan",
-    "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago",
-    "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates",
-    "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City",
+# Define keyword categories
+COUNTRY_KEYWORDS = ["Singapore", "Indonesia", "Malaysia", "Philippines", "Thailand", "Vietnam"]
+GROUP_COMPANY_KEYWORDS = ["Group", "Inc", "Corporation", "Ltd", "Limited", "Company", "Bank"]
 
-    "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"]
-GROUP_COMPANY_KEYWORDS = [
-    "Group", "Inc", "Incorporated", "Corporation", "Corp", "Co", "Company", "Ltd", "Limited",
-    "LLC", "LLP", "PLC", "Bank", "Holdings", "Holding", "Partners", "Partnership",
-    "Trust", "Association", "Foundation", "Sdn Bhd", "Pte Ltd", "AG", "GmbH", "BV",
-    "NV", "SAS", "SA", "SpA", "AB", "AS", "Oy", "A/S", "K.K.", "Bhd", "Tbk", "Enterprises",
-    "International", "Industries", "Tech", "Technologies", "Solutions", "Services", "Global"
-]
-
-
+# Define weights for each category
 WEIGHTS = {
     'group': 0.3,
     'country': 0.6,
     'company': 1.0
 }
 
+# Function to categorize tokens
 def categorize_token(token):
     token = token.lower()
     if any(country.lower() in token for country in COUNTRY_KEYWORDS):
@@ -97,14 +67,12 @@ def upload_file():
     results = []
     account_names = account_df['Account Name'].dropna().unique()
     contact_names = contact_df['Account Name'].dropna().unique()
-
     seen_speakers = set()
 
     for _, row in speaker_df.iterrows():
         speaker_name = str(row.get('Company', '')).strip()
         if not speaker_name or speaker_name in seen_speakers:
             continue
-
         seen_speakers.add(speaker_name)
 
         speaker_simhash = calculate_weighted_simhash(speaker_name, categorize_token, WEIGHTS)
@@ -127,7 +95,11 @@ def upload_file():
                 top_contact_similarity = similarity
                 top_contact_match = {'contact': contact, 'similarity': round(similarity * 100, 2)}
 
-        confirmed = confirmed_mappings.get(speaker_name, {})
+        record = ConfirmedMapping.query.filter_by(speaker=speaker_name).first()
+        confirmed = {
+            'account': record.matched_account if record else None,
+            'contact': record.matched_contact if record else None
+        }
 
         results.append({
             'speaker': speaker_name,
@@ -153,52 +125,43 @@ def confirm_match():
         speaker = match.get('speaker')
         account = match.get('account')
         contact = match.get('contact')
+
         if speaker:
-            if speaker not in confirmed_mappings:
-                confirmed_mappings[speaker] = {}
+            record = ConfirmedMapping.query.filter_by(speaker=speaker).first()
+            if not record:
+                record = ConfirmedMapping(speaker=speaker)
+                db.session.add(record)
+
             if account is not None:
-                confirmed_mappings[speaker]['account'] = account
+                record.matched_account = account
             if contact is not None:
-                confirmed_mappings[speaker]['contact'] = contact
+                record.matched_contact = contact
 
-    with open('confirmed_mappings.json', 'w') as f:
-        json.dump(confirmed_mappings, f, indent=2)
-
+    db.session.commit()
     return jsonify({"message": "Match(es) confirmed!"})
 
 @app.route('/unconfirm', methods=['POST'])
 def unconfirm_match():
     data = request.get_json()
     speaker = data.get('speaker')
-    field = data.get('field')  # optional: 'account' or 'contact'
+    field = data.get('field')
 
-    if not speaker:
-        return jsonify({"error": "Speaker is required"}), 400
+    record = ConfirmedMapping.query.filter_by(speaker=speaker).first()
+    if not record:
+        return jsonify({"error": f"No mapping found for {speaker}"}), 404
 
-    if speaker not in confirmed_mappings:
-        return jsonify({"error": f"No mapping found for {speaker}."}), 404
+    if field:
+        if field == 'account':
+            record.matched_account = None
+        elif field == 'contact':
+            record.matched_contact = None
+    else:
+        db.session.delete(record)
 
-    fields_to_remove = []
-
-    if field:  # Only one field to unconfirm
-        if field in confirmed_mappings[speaker]:
-            fields_to_remove.append(field)
-        else:
-            return jsonify({"error": f"{field} not found for {speaker}."}), 404
-    else:  # No field specified: unconfirm both
-        fields_to_remove = list(confirmed_mappings[speaker].keys())
-
-    for f in fields_to_remove:
-        del confirmed_mappings[speaker][f]
-
-    if not confirmed_mappings[speaker]:  # Remove speaker if empty
-        del confirmed_mappings[speaker]
-
-    with open('confirmed_mappings.json', 'w') as f:
-        json.dump(confirmed_mappings, f, indent=2)
-
-    removed_fields = ', '.join([f.capitalize() for f in fields_to_remove])
-    return jsonify({"message": f"{removed_fields} unconfirmed for {speaker}"})
+    db.session.commit()
+    return jsonify({"message": f"{field or 'All'} unconfirmed for {speaker}"})
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)

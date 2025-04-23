@@ -1,16 +1,25 @@
-from flask import Flask, request, jsonify, render_template
+ffrom flask import Flask, request, jsonify, render_template
 import pandas as pd
-import json
 from simhash import calculate_weighted_simhash, Simhash
+from flask_sqlalchemy import SQLAlchemy
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 app = Flask(__name__, template_folder='templates')
 
-# Load or initialize confirmed mappings
-try:
-    with open('confirmed_mappings.json', 'r') as f:
-        confirmed_mappings = json.load(f)
-except FileNotFoundError:
-    confirmed_mappings = {}
+# PostgreSQL config (Render will set DATABASE_URL env variable)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# DB Model for confirmed mappings
+class ConfirmedMapping(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    speaker = db.Column(db.String(255), nullable=False, unique=True)
+    matched_account = db.Column(db.String(255))
+    matched_contact = db.Column(db.String(255))
 
 COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina",
     "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
@@ -120,15 +129,12 @@ def upload_file():
 
         confirmed = confirmed_mappings.get(speaker_name, {})
 
-        # Only include if either similarity is above 70%
-        if (top_account_match and top_account_match['similarity'] > 70) or \
-           (top_contact_match and top_contact_match['similarity'] > 70):
-            results.append({
-                'speaker': speaker_name,
-                'matched_account': top_account_match,
-                'matched_contact': top_contact_match,
-                'confirmed': confirmed
-            })
+        results.append({
+            'speaker': speaker_name,
+            'matched_account': top_account_match,
+            'matched_contact': top_contact_match,
+            'confirmed': confirmed
+        })
 
     results.sort(key=lambda x: max(
         x['matched_account']['similarity'] if x['matched_account'] else 0,

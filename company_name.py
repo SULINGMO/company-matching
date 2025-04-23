@@ -1,17 +1,27 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
-import json
 from simhash import calculate_weighted_simhash, Simhash
+from flask_sqlalchemy import SQLAlchemy
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 app = Flask(__name__, template_folder='templates')
 
-# Load or initialize confirmed mappings
-try:
-    with open('confirmed_mappings.json', 'r') as f:
-        confirmed_mappings = json.load(f)
-except FileNotFoundError:
-    confirmed_mappings = {}
+# PostgreSQL config (Render will set DATABASE_URL env variable)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
+# DB Model for confirmed mappings
+class ConfirmedMapping(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    speaker = db.Column(db.String(255), nullable=False, unique=True)
+    matched_account = db.Column(db.String(255))
+    matched_contact = db.Column(db.String(255))
+
+# Simhash category rules
 COUNTRY_KEYWORDS = ["Singapore", "Indonesia", "Malaysia", "Philippines", "Thailand", "Vietnam"]
 GROUP_COMPANY_KEYWORDS = ["Group", "Inc", "Corporation", "Ltd", "Limited", "Company", "Bank"]
 
@@ -52,14 +62,12 @@ def upload_file():
     results = []
     account_names = account_df['Account Name'].dropna().unique()
     contact_names = contact_df['Account Name'].dropna().unique()
-
     seen_speakers = set()
 
     for _, row in speaker_df.iterrows():
         speaker_name = str(row.get('Company', '')).strip()
         if not speaker_name or speaker_name in seen_speakers:
             continue
-
         seen_speakers.add(speaker_name)
 
         speaker_simhash = calculate_weighted_simhash(speaker_name, categorize_token, WEIGHTS)
@@ -82,7 +90,11 @@ def upload_file():
                 top_contact_similarity = similarity
                 top_contact_match = {'contact': contact, 'similarity': round(similarity * 100, 2)}
 
-        confirmed = confirmed_mappings.get(speaker_name, {})
+        record = ConfirmedMapping.query.filter_by(speaker=speaker_name).first()
+        confirmed = {
+            'account': record.matched_account if record else None,
+            'contact': record.matched_contact if record else None
+        }
 
         results.append({
             'speaker': speaker_name,
@@ -108,52 +120,45 @@ def confirm_match():
         speaker = match.get('speaker')
         account = match.get('account')
         contact = match.get('contact')
+
         if speaker:
-            if speaker not in confirmed_mappings:
-                confirmed_mappings[speaker] = {}
+            record = ConfirmedMapping.query.filter_by(speaker=speaker).first()
+            if not record:
+                record = ConfirmedMapping(speaker=speaker)
+                db.session.add(record)
+
             if account is not None:
-                confirmed_mappings[speaker]['account'] = account
+                record.matched_account = account
             if contact is not None:
-                confirmed_mappings[speaker]['contact'] = contact
+                record.matched_contact = contact
 
-    with open('confirmed_mappings.json', 'w') as f:
-        json.dump(confirmed_mappings, f, indent=2)
-
+    db.session.commit()
     return jsonify({"message": "Match(es) confirmed!"})
 
 @app.route('/unconfirm', methods=['POST'])
 def unconfirm_match():
     data = request.get_json()
     speaker = data.get('speaker')
-    field = data.get('field')  # optional: 'account' or 'contact'
+    field = data.get('field')
 
-    if not speaker:
-        return jsonify({"error": "Speaker is required"}), 400
+    record = ConfirmedMapping.query.filter_by(speaker=speaker).first()
+    if not record:
+        return jsonify({"error": f"No mapping found for {speaker}"}), 404
 
-    if speaker not in confirmed_mappings:
-        return jsonify({"error": f"No mapping found for {speaker}."}), 404
+    if field:
+        if field == 'account':
+            record.matched_account = None
+        elif field == 'contact':
+            record.matched_contact = None
+    else:
+        db.session.delete(record)
 
-    fields_to_remove = []
-
-    if field:  # Only one field to unconfirm
-        if field in confirmed_mappings[speaker]:
-            fields_to_remove.append(field)
-        else:
-            return jsonify({"error": f"{field} not found for {speaker}."}), 404
-    else:  # No field specified: unconfirm both
-        fields_to_remove = list(confirmed_mappings[speaker].keys())
-
-    for f in fields_to_remove:
-        del confirmed_mappings[speaker][f]
-
-    if not confirmed_mappings[speaker]:  # Remove speaker if empty
-        del confirmed_mappings[speaker]
-
-    with open('confirmed_mappings.json', 'w') as f:
-        json.dump(confirmed_mappings, f, indent=2)
-
-    removed_fields = ', '.join([f.capitalize() for f in fields_to_remove])
-    return jsonify({"message": f"{removed_fields} unconfirmed for {speaker}"})
+    db.session.commit()
+    return jsonify({"message": f"{field or 'All'} unconfirmed for {speaker}"})
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
+
+

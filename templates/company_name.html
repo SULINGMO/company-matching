@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Company Name Matching</title>
   <style>
     :root {
@@ -117,139 +119,176 @@
     input[type="checkbox"] {
       margin-right: 6px;
     }
+
+    input[type="checkbox"]:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button:disabled {
+      background-color: #ccc !important;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
   <h2>Upload Company Lists</h2>
   <form id="uploadForm" enctype="multipart/form-data">
-    <label>Speaker List: <input type="file" name="speaker"></label>
+    <label>Speaker List: <input type="file" name="speaker" required></label>
     <label>Account List: <input type="file" name="account"></label>
     <label>Contact List: <input type="file" name="contact"></label>
+    <label>Address List: <input type="file" name="address"></label>
+    <label>LinkedIn List: <input type="file" name="linkedin"></label>
     <button type="submit">Upload</button>
   </form>
 
   <table id="resultTable" style="display: none;">
     <thead>
-      <tr>
-        <th>Speaker Company</th>
-        <th>Matched Account</th>
-        <th>Account Similarity</th>
-        <th>Matched Contact</th>
-        <th>Contact Similarity</th>
-        <th>Confirm Match</th>
-      </tr>
+      <tr id="resultTableHeaders"></tr>
     </thead>
-    <tbody></tbody>
+    <tbody id="resultsBody"></tbody>
   </table>
 
   <script>
-    document.getElementById('uploadForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
+   document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+  event.preventDefault();
+  const formData = new FormData(this);
+
+  const form = this;
+  const availableColumns = [];
+
+  if (form.speaker.files.length > 0) availableColumns.push('speaker');
+  if (form.account.files.length > 0) availableColumns.push('account');
+  if (form.contact.files.length > 0) availableColumns.push('contact');
+  if (form.address.files.length > 0) availableColumns.push('address');
+  if (form.linkedin.files.length > 0) availableColumns.push('linkedin');
+
+  console.log('Available columns:', availableColumns);
+
 
       const response = await fetch('/upload', {
         method: 'POST',
         body: formData
       });
 
-      const results = await response.json();
-      const tbody = document.querySelector('#resultTable tbody');
-      tbody.innerHTML = '';
-
-      const seenSpeakers = new Set();
-
-      results.forEach((item, index) => {
-        const speaker = item.speaker?.trim();
-        if (!speaker || seenSpeakers.has(speaker)) return;
-        seenSpeakers.add(speaker);
-
-        const row = document.createElement('tr');
-        row.setAttribute('data-index', index);
-
-        const accountSimilarity = parseFloat(item.matched_account?.similarity ?? 0);
-        const contactSimilarity = parseFloat(item.matched_contact?.similarity ?? 0);
-
-        const isFullMatch = accountSimilarity === 100 || contactSimilarity === 100;
-        const isConfirmed = (item.confirmed && (item.confirmed.account || item.confirmed.contact));
-
-        if (isFullMatch) row.classList.add('highlight-100');
-        if (isConfirmed || isFullMatch) row.classList.add('confirmed-row');
-
-        row.innerHTML = `
-          <td>${speaker}</td>
-          <td>${item.matched_account?.account || '-'}</td>
-          <td>${item.matched_account?.similarity ?? '-'}</td>
-          <td>${item.matched_contact?.contact || '-'}</td>
-          <td>${item.matched_contact?.similarity ?? '-'}</td>
-          <td>
-            <label><input type="checkbox" class="confirm-account"> Account</label><br>
-            <label><input type="checkbox" class="confirm-contact"> Contact</label><br>
-            <button type="button" class="confirm-btn">Confirm</button>
-            <button type="button" class="unconfirm-btn">Unconfirm</button>
-          </td>
-        `;
-
-        tbody.appendChild(row);
-      });
-
-      document.getElementById('resultTable').style.display = 'table';
-      bindConfirmButtons(results);
-      bindUnconfirmButtons(results);
+      if (response.ok) {
+        const results = await response.json();
+        updateTableHeaders(availableColumns);
+        displayResults(results, availableColumns);
+      } else {
+        alert('Error uploading files');
+      }
     });
 
-    function bindConfirmButtons(results) {
-      document.querySelectorAll('.confirm-btn').forEach(button => {
-        button.addEventListener('click', async function () {
-          const row = this.closest('tr');
-          const index = row.getAttribute('data-index');
-          const data = results[index];
+   function updateTableHeaders(availableColumns) {
+  const headers = document.querySelector("#resultTable thead tr");
+  headers.innerHTML = "";  // Clear old headers
 
-          const confirmAccount = row.querySelector('.confirm-account').checked;
-          const confirmContact = row.querySelector('.confirm-contact').checked;
+  headers.innerHTML += `<th>Speaker Company</th>`; // Always present
 
-          const confirmData = {
-            speaker: data.speaker,
-            account: confirmAccount ? data.matched_account?.account : null,
-            contact: confirmContact ? data.matched_contact?.contact : null
-          };
+  if (availableColumns.includes('account')) {
+    headers.innerHTML += `<th>Matched Account</th><th>Account Similarity</th>`;
+  }
 
-          const response = await fetch('/confirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(confirmData)
-          });
+  if (availableColumns.includes('contact')) {
+    headers.innerHTML += `<th>Matched Contact</th><th>Contact Similarity</th>`;
+  }
 
-          if (response.ok) {
-            row.classList.add('confirmed-row');
-          }
-        });
-      });
+  if (availableColumns.includes('address')) {
+    headers.innerHTML += `<th>Matched Address</th><th>Address Similarity</th>`;
+  }
+
+  if (availableColumns.includes('linkedin')) {
+    headers.innerHTML += `<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>`;
+  }
+
+  headers.innerHTML += `<th>Actions</th>`; // Always show actions
+}
+
+
+  function displayResults(results, availableColumns) {
+  const resultsBody = document.getElementById("resultsBody");
+  resultsBody.innerHTML = '';
+
+  results.forEach(result => {
+    const row = document.createElement("tr");
+
+    let rowData = `<td>${result.speaker || 'None'}</td>`;
+
+    if (availableColumns.includes('account')) {
+      const acc = result.matched_account;
+      rowData += `
+        <td>${acc[0]?.name || 'None'}</td>
+        <td>${acc[0]?.similarity != null ? acc[0].similarity * 100+ '%' : 'N/A'}</td>
+      `;
     }
 
-    function bindUnconfirmButtons(results) {
-      document.querySelectorAll('.unconfirm-btn').forEach(button => {
-        button.addEventListener('click', async function () {
-          const row = this.closest('tr');
-          const index = row.getAttribute('data-index');
-          const data = results[index];
+    if (availableColumns.includes('contact')) {
+      const con = result.matched_contact;
+      rowData += `
+        <td>${con[0]?.name || 'None'}</td>
+        <td>${con[0]?.similarity != null ? con[0].similarity * 100+ '%' : 'N/A'}</td>
+      `;
+    }
 
-          const unconfirmData = {
-            speaker: data.speaker
-          };
+    if (availableColumns.includes('address')) {
+      const addr = result.matched_address;
+      rowData += `
+        <td>${addr[0]?.name || 'None'}</td>
+        <td>${addr[0]?.similarity != null ? addr[0].similarity * 100+ '%' : 'N/A'}</td>
+      `;
+    }
 
-          const response = await fetch('/unconfirm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(unconfirmData)
-          });
+    if (availableColumns.includes('linkedin')) {
+      const li = result.matched_linkedin;
+      rowData += `
+        <td>${li[0]?.name || 'None'}</td>
+        <td>${li[0]?.similarity != null ? li[0].similarity * 100 + '%' : 'N/A'}</td>
+      `;
+    }
 
-          if (response.ok) {
-            row.classList.remove('confirmed-row');
-            row.querySelector('.confirm-account').checked = false;
-            row.querySelector('.confirm-contact').checked = false;
-          }
-        });
+    rowData += `
+      <td>
+        <button class="confirm-btn" onclick='confirmMatch(${JSON.stringify(result)})'>Confirm</button>
+        <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
+      </td>
+    `;
+
+    row.innerHTML = rowData;
+    resultsBody.appendChild(row);
+  });
+
+  document.getElementById("resultTable").style.display = 'table';
+}
+
+
+    async function confirmMatch(result) {
+      const response = await fetch('/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([result])
       });
+
+      if (response.ok) {
+        alert('Match confirmed!');
+      } else {
+        alert('Error confirming match');
+      }
+    }
+
+    async function unconfirmMatch(speaker) {
+      const field = prompt('Enter field to unconfirm (account, contact, linkedin, address, or leave blank for all):');
+      const response = await fetch('/unconfirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ speaker, field })
+      });
+
+      if (response.ok) {
+        alert('Match unconfirmed!');
+      } else {
+        alert('Error unconfirming match');
+      }
     }
   </script>
 </body>

@@ -57,10 +57,7 @@ COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "A
                     "Yemen", "Zambia", "Zimbabwe"]
 
 GROUP_COMPANY_KEYWORDS = ["Group", "Inc", "Incorporated", "Corporation", "Corp", "Co", "Company", "Ltd", "Limited",
-                          "LLC", "LLP", "PLC", "Bank", "Holdings", "Holding", "Partners", "Partnership", "Trust",
-                          "Association", "Foundation", "Sdn Bhd", "Pte Ltd", "AG", "GmbH", "BV", "NV", "SAS", "SA",
-                          "SpA", "AB", "AS", "Oy", "A/S", "K.K.", "Bhd", "Tbk", "Enterprises", "International",
-                          "Industries", "Tech", "Technologies", "Solutions", "Services", "Global"]
+                          "LLC", "LLP", "PLC", "Bank", "Holdings", "Holding", "Partners"]
 
 
 

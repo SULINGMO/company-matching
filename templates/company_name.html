@@ -180,11 +180,11 @@
       }
     });
 
-   function updateTableHeaders(availableColumns) {
+  function updateTableHeaders(availableColumns) {
   const headers = document.querySelector("#resultTable thead tr");
   headers.innerHTML = "";  // Clear old headers
 
-  headers.innerHTML += `<th>Speaker Company</th>`; // Always present
+  headers.innerHTML += `<th>Speaker Company</th>`; // ✅
 
   if (availableColumns.includes('account')) {
     headers.innerHTML += `<th>Matched Account</th><th>Account Similarity</th>`;
@@ -202,9 +202,8 @@
     headers.innerHTML += `<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>`;
   }
 
-  headers.innerHTML += `<th>Actions</th>`; // Always show actions
+  headers.innerHTML += `<th>Actions</th>`;
 }
-
 
   function displayResults(results, availableColumns) {
   const resultsBody = document.getElementById("resultsBody");
@@ -213,7 +212,7 @@
   results.forEach(result => {
     const row = document.createElement("tr");
 
-    let rowData = `<td>${result.speaker || 'None'}</td>`;
+   let rowData = `<td>${result.speaker || 'None'}</td>`;
 
     if (availableColumns.includes('account')) {
       const acc = result.matched_account;
@@ -247,12 +246,29 @@
       `;
     }
 
-    rowData += `
-      <td>
-        <button class="confirm-btn" onclick='confirmMatch(${JSON.stringify(result)})'>Confirm</button>
-        <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
-      </td>
-    `;
+    rowData += `<td>`;
+
+if (availableColumns.includes('account') && result.matched_account?.[0]) {
+  rowData += `<label><input type="checkbox" class="match-checkbox" data-type="account" data-speaker="${result.speaker}"> Account</label><br>`;
+}
+
+if (availableColumns.includes('contact') && result.matched_contact?.[0]) {
+  rowData += `<label><input type="checkbox" class="match-checkbox" data-type="contact" data-speaker="${result.speaker}"> Contact</label><br>`;
+}
+
+if (availableColumns.includes('address') && result.matched_address?.[0]) {
+  rowData += `<label><input type="checkbox" class="match-checkbox" data-type="address" data-speaker="${result.speaker}"> Address</label><br>`;
+}
+
+if (availableColumns.includes('linkedin') && result.matched_linkedin?.[0]) {
+  rowData += `<label><input type="checkbox" class="match-checkbox" data-type="linkedin" data-speaker="${result.speaker}"> LinkedIn</label><br>`;
+}
+
+rowData += `
+  <button class="confirm-btn" onclick="confirmSelectedMatches('${result.speaker}')">Confirm</button>
+  <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
+</td>`;
+
 
     row.innerHTML = rowData;
     resultsBody.appendChild(row);
@@ -290,6 +306,28 @@
         alert('Error unconfirming match');
       }
     }
+    async function confirmSelectedMatches(speaker) {
+  const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
+  const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
+
+  if (selectedTypes.length === 0) {
+    alert('Please select at least one match to confirm.');
+    return;
+  }
+
+  const response = await fetch('/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ speaker, fields: selectedTypes })
+  });
+
+  if (response.ok) {
+    alert('Selected matches confirmed!');
+  } else {
+    alert('Error confirming selected matches.');
+  }
+}
+
   </script>
 </body>
 </html>

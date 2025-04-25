@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template
 import pandas as pd
 from simhash import calculate_weighted_simhash
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.postgresql import ARRAY
 import os
 from dotenv import load_dotenv
 
@@ -14,19 +15,15 @@ app = Flask(__name__, template_folder='templates')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize DB
 db = SQLAlchemy(app)
 
-# Define model
-class ConfirmedMapping(db.Model):
+# --- Updated Model ---
+class CompanyGroup(db.Model):
+    __tablename__ = 'company_groups'
     id = db.Column(db.Integer, primary_key=True)
-    speaker = db.Column(db.String(255), nullable=False, unique=True)
-    matched_account = db.Column(db.String(255))
-    matched_contact = db.Column(db.String(255))
-    matched_linkedin = db.Column(db.String(255))
-    matched_address = db.Column(db.String(255))
+    aliases = db.Column(ARRAY(db.Text), nullable=False)
 
-# Keywords for matching
+# Keywords for categorization
 COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina",
                     "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
                     "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
@@ -59,16 +56,12 @@ COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "A
 GROUP_COMPANY_KEYWORDS = ["Group", "Inc", "Incorporated", "Corporation", "Corp", "Co", "Company", "Ltd", "Limited",
                           "LLC", "LLP", "PLC", "Bank", "Holdings", "Holding", "Partners"]
 
-
-
-# Weights
 weights = {
     'group': 0.3,
     'country': 0.6,
     'company': 1.0
 }
 
-# Token categorization function
 def categorize_token(token):
     token = token.lower()
     if any(country.lower() in token for country in COUNTRY_KEYWORDS):
@@ -81,7 +74,6 @@ def categorize_token(token):
 def index():
     return render_template('company_name.html')
 
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     uploaded_files = {}
@@ -91,38 +83,33 @@ def upload_file():
 
     try:
         df = pd.read_excel(speaker_file)
-        df = df.dropna(subset=['Company'])
-        df = df.drop_duplicates(subset=['Company'])
+        df = df.dropna(subset=['Company']).drop_duplicates(subset=['Company'])
         uploaded_files['speaker'] = df
-
     except Exception as e:
         return jsonify({"error": f"Error reading speaker file: {str(e)}"}), 500
 
-    # Load other files (account, contact, linkedin, address)
     for key in ['account', 'contact', 'linkedin', 'address']:
         file = request.files.get(key)
         if file:
             try:
                 df = pd.read_excel(file)
-                if key in ['account', 'contact']:
-                    df = df.dropna(subset=['Account Name'])
-                else:
-                    df = df.dropna(subset=['Company'])
+                column = 'Account Name' if key in ['account', 'contact'] else 'Company'
+                df = df.dropna(subset=[column])
                 uploaded_files[key] = df
             except Exception as e:
                 return jsonify({"error": f"Error reading file {key}: {str(e)}"}), 500
 
-    # Initialize all_names to store unique company names from all files
+    # Build fallback dataset from uploaded files
     all_names = {}
     for key, df in uploaded_files.items():
-        if key in ['account', 'contact']:
-            all_names[key] = df['Account Name'].dropna().unique()
-        else:
-            all_names[key] = df['Company'].dropna().unique()
+        if key == 'speaker':
+            continue
+        column = 'Account Name' if key in ['account', 'contact'] else 'Company'
+        all_names[key] = df[column].dropna().unique()
 
     results = []
+    company_groups = CompanyGroup.query.all()
 
-    # Process each speaker entry
     for _, speaker in uploaded_files['speaker'].iterrows():
         speaker_name = speaker['Company']
         result = {
@@ -133,57 +120,53 @@ def upload_file():
             'matched_address': []
         }
 
-        # Initialize match_results with empty lists for valid keys (no 'speaker' key here)
-        match_results = {
-            'account': [],
-            'contact': [],
-            'linkedin': [],
-            'address': []
-        }
+        matched_from_group = False
 
-        # Compare speaker name with names from other lists (account, contact, etc.)
-        for key, names in all_names.items():
-            # Only compare if the key is one of the matchable categories
-            if key not in match_results:
-                continue  # Skip any irrelevant keys
-
-            for name in names:
-                if speaker_name == name:
-                    continue  # Skip exact matches (same name)
-
-                # Calculate similarity for non-matching names
+        # Step 1: Try match from existing company_groups
+        for group in company_groups:
+            for alias in group.aliases:
                 similarity = calculate_weighted_simhash(
-                    speaker_name, name, categorize_func=categorize_token, weights=weights
+                    speaker_name, alias,
+                    categorize_func=categorize_token,
+                    weights=weights
                 )
                 if similarity >= 0.65:
-                    match_results[key].append({
-                        'name': name,
-                        'similarity': round(similarity, 2)
-                    })
-        # Only keep the top match from each list (if similarity >= 0.65)
-        for key in ['account', 'contact', 'linkedin', 'address']:
-            matches = sorted(match_results[key], key=lambda x: -x['similarity'])
-            if matches and matches[0]['similarity'] >= 0.65:
-                result[f'matched_{key}'] = [matches[0]]
-            else:
-                result[f'matched_{key}'] = []
+                    for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']:
+                        result[key] = [{
+                            'name': alias,
+                            'similarity': round(similarity, 2)
+                        }]
+                    matched_from_group = True
+                    break
+            if matched_from_group:
+                break
 
+        # Step 2: Fallback to file-based matching if no match in group
+        if not matched_from_group:
+            for key, names in all_names.items():
+                matches = []
+                for name in names:
+                    if speaker_name == name:
+                        continue
+                    similarity = calculate_weighted_simhash(
+                        speaker_name, name,
+                        categorize_func=categorize_token,
+                        weights=weights
+                    )
+                    if similarity >= 0.65:
+                        matches.append({
+                            'name': name,
+                            'similarity': round(similarity, 2)
+                        })
+                matches = sorted(matches, key=lambda x: -x['similarity'])
+                if matches:
+                    result[f'matched_{key}'] = [matches[0]]
 
-        # Only append result if there are any matches
+        # Append result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):
             results.append(result)
 
-    # Filter results to only include entries with valid matches
-    # Only append result if there are any matches (similarity can now be less than 1)
-    results = [
-        result for result in results
-        if any(match.get('similarity', 0) >= 0.65 for match in
-               result['matched_account'] + result['matched_contact'] + result['matched_linkedin'] + result[
-                   'matched_address'])
-    ]
-
-    # Print results for debugging
-    # Add a max similarity score to each result for sorting
+    # Sort results by max similarity
     for result in results:
         all_similarities = [
             match['similarity'] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']
@@ -191,37 +174,55 @@ def upload_file():
         ]
         result['max_similarity'] = max(all_similarities) if all_similarities else 0
 
-    # Sort results by max similarity in descending order
     results = sorted(results, key=lambda x: -x['max_similarity'])
 
-    # Optionally remove the helper field before returning
     for result in results:
         result.pop('max_similarity', None)
 
     import json
     print(json.dumps(results, indent=2))
-
     return jsonify(results)
 
-
 @app.route('/confirm', methods=['POST'])
-def confirm_mapping():
+def confirm_to_group():
     data = request.json
-    try:
-        for mapping in data.get('mappings', []):
-            new_mapping = ConfirmedMapping(
-                speaker=mapping['speaker'],
-                matched_account=mapping.get('matched_account'),
-                matched_contact=mapping.get('matched_contact'),
-                matched_linkedin=mapping.get('matched_linkedin'),
-                matched_address=mapping.get('matched_address')
-            )
-            db.session.add(new_mapping)
+    speaker = data.get('speaker')
+    fields = data.get('fields', [])
+
+    if not speaker or not fields:
+        return jsonify({"error": "Missing speaker or fields"}), 400
+
+    # Combine all matched values
+    aliases_to_add = set([speaker])
+    for field in fields:
+        matched = data.get(f'matched_{field}')
+        if matched:
+            aliases_to_add.add(matched)
+
+    # Load all current groups
+    groups = CompanyGroup.query.all()
+
+    # Step 1: Try to find a group that contains any alias (or speaker)
+    target_group = None
+    for group in groups:
+        if any(alias in group.aliases for alias in aliases_to_add):
+            target_group = group
+            break
+
+    if target_group:
+        # Add all aliases that are not already in the group
+        new_aliases = list(set(group.aliases + list(aliases_to_add)))
+        target_group.aliases = new_aliases
         db.session.commit()
-        return jsonify({"message": "Mappings confirmed successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Error confirming mappings: {str(e)}"}), 500
+    else:
+        # Create new group if no match found
+        new_group = CompanyGroup(aliases=list(aliases_to_add))
+        db.session.add(new_group)
+        db.session.commit()
+
+    return jsonify({"message": "Speaker and matched names added into one group"}), 200
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

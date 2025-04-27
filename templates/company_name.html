@@ -346,6 +346,62 @@ rowData += `
   }
 }
 
+async function unconfirmMatch(speaker) {
+  const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
+  const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
+
+  if (selectedTypes.length === 0) {
+    alert('Please select at least one match to unconfirm.');
+    return;
+  }
+
+  const row = Array.from(document.querySelectorAll("#resultsBody tr")).find(r =>
+    r.firstChild?.textContent?.trim() === speaker
+  );
+
+  const typeToIndexOffset = {
+    'account': 1,
+    'contact': 3,
+    'address': 5,
+    'linkedin': 7
+  };
+
+  const payload = {
+    speaker: speaker,
+    fields: selectedTypes
+  };
+
+  selectedTypes.forEach(type => {
+    const colIndex = typeToIndexOffset[type];
+    if (colIndex !== undefined && row?.children[colIndex]) {
+      const matchedName = row.children[colIndex].textContent?.trim();
+      if (matchedName && matchedName !== 'None') {
+        payload[`matched_${type}`] = matchedName;
+      }
+    }
+  });
+
+  console.log("🔍 Unconfirm Payload:", payload);  // Debug
+
+  const response = await fetch('/unconfirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (response.ok) {
+    alert('Selected matches unconfirmed!');
+    const result = await response.json();
+    console.log("✅ Server response:", result);  // Debug
+  } else {
+    const error = await response.text();
+    console.error("❌ Server error:", error);  // Debug
+    alert('Error unconfirming selected matches.');
+  }
+}
+
+
+
 
   </script>
 </body>

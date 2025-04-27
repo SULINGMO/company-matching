@@ -222,6 +222,53 @@ def confirm_to_group():
 
     return jsonify({"message": "Speaker and matched names added into one group"}), 200
 
+@app.route('/unconfirm', methods=['POST'])
+def unconfirm_from_group():
+    data = request.json
+    speaker = data.get('speaker')
+    fields = data.get('fields', [])
+
+    if not speaker or not fields:
+        return jsonify({"error": "Missing speaker or fields"}), 400
+
+    # Collect aliases to remove (only matched ones)
+    aliases_to_remove = set()
+    for field in fields:
+        matched = data.get(f'matched_{field}')
+        if matched:
+            aliases_to_remove.add(matched)
+
+    groups = CompanyGroup.query.all()
+    target_group = None
+
+    for group in groups:
+        if speaker in group.aliases:
+            target_group = group
+            break
+
+    if not target_group:
+        return jsonify({"error": "No matching group found to unconfirm"}), 400
+
+    # Logic: remove only the matched names, NOT speaker yet
+    updated_aliases = [alias for alias in target_group.aliases if alias not in aliases_to_remove]
+
+    if speaker not in updated_aliases:
+        # Special case: if somehow speaker was also marked for removal manually
+        updated_aliases.append(speaker)
+
+    # Now check if speaker is the only one left
+    if updated_aliases == [speaker]:
+        # Only speaker left after removal, so delete entire group
+        db.session.delete(target_group)
+        db.session.commit()
+        return jsonify({"message": "Group deleted because only speaker left"}), 200
+    else:
+        # Otherwise update normally
+        target_group.aliases = updated_aliases
+        db.session.commit()
+        return jsonify({"message": "Selected aliases unconfirmed, speaker preserved"}), 200
+
+
 
 
 if __name__ == '__main__':

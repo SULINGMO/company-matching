@@ -120,7 +120,7 @@ def upload_file():
             'matched_address': []
         }
 
-        company_groups = CompanyGroup.query.all()
+
         speaker_aliases = []
 
         # Find aliases for this speaker if it exists
@@ -135,37 +135,28 @@ def upload_file():
                 df = uploaded_files[key]
                 column = 'Account Name' if key in ['account', 'contact'] else 'Company'
 
-                # Step 1: Try matching uploaded file against database aliases
+                # Step 1: Try matching uploaded file against database aliases (STRICT)
                 for name in df[column]:
-                    if any(calculate_weighted_simhash(name, alias, categorize_func=categorize_token,
-                                                      weights=weights) >= 0.65 for alias in speaker_aliases):
+                    if name.strip() in speaker_aliases:
+                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
+                                                                weights=weights)
+                        matches.append({
+                            'name': name,
+                            'similarity': round(similarity, 2),
+                            'fromAliasMatch': True
+                        })
+
+                # Step 2: If no alias match, fallback to normal similarity match
+                if not matches:
+                    for name in df[column]:
                         similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
                                                                 weights=weights)
                         if similarity >= 0.65:
                             matches.append({
                                 'name': name,
                                 'similarity': round(similarity, 2),
-                                'fromAliasMatch': True  # << ADD THIS FLAG
+                                'fromAliasMatch': False
                             })
-
-                # Step 2: If no alias match, fallback to normal best match
-                if not matches:
-                    for name in df[column]:
-                        if name.strip().lower() == speaker_name.strip().lower():
-                            matches.append({
-                                'name': name,
-                                'similarity': 1.0,  # Exact match
-                                'fromAliasMatch': False  # << NOT from database
-                            })
-                        else:
-                            similarity = calculate_weighted_simhash(speaker_name, name,
-                                                                    categorize_func=categorize_token, weights=weights)
-                            if similarity >= 0.65:
-                                matches.append({
-                                    'name': name,
-                                    'similarity': round(similarity, 2),
-                                    'fromAliasMatch': False  # << NOT from database
-                                })
 
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:

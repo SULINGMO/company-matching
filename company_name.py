@@ -120,49 +120,58 @@ def upload_file():
             'matched_address': []
         }
 
-        matched_from_group = False
+        company_groups = CompanyGroup.query.all()
+        speaker_aliases = []
 
-        # Step 1: Try match from existing company_groups
+        # Find aliases for this speaker if it exists
         for group in company_groups:
-            for alias in group.aliases:
-                similarity = calculate_weighted_simhash(
-                    speaker_name, alias,
-                    categorize_func=categorize_token,
-                    weights=weights
-                )
-                if similarity >= 0.65:
-                    for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']:
-                        result[key] = [{
-                            'name': alias,
-                            'similarity': round(similarity, 2)
-                        }]
-                    matched_from_group = True
-                    break
-            if matched_from_group:
+            if speaker_name in group.aliases:
+                speaker_aliases = group.aliases
                 break
 
-        # Step 2: Fallback to file-based matching if no match in group
-        if not matched_from_group:
-            for key, names in all_names.items():
-                matches = []
-                for name in names:
-                    if speaker_name == name:
-                        continue
-                    similarity = calculate_weighted_simhash(
-                        speaker_name, name,
-                        categorize_func=categorize_token,
-                        weights=weights
-                    )
-                    if similarity >= 0.65:
-                        matches.append({
-                            'name': name,
-                            'similarity': round(similarity, 2)
-                        })
+        for key in ['account', 'contact', 'linkedin', 'address']:
+            matches = []
+            if key in uploaded_files:
+                df = uploaded_files[key]
+                column = 'Account Name' if key in ['account', 'contact'] else 'Company'
+
+                # Step 1: Try matching uploaded file against database aliases
+                for name in df[column]:
+                    if any(calculate_weighted_simhash(name, alias, categorize_func=categorize_token,
+                                                      weights=weights) >= 0.65 for alias in speaker_aliases):
+                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
+                                                                weights=weights)
+                        if similarity >= 0.65:
+                            matches.append({
+                                'name': name,
+                                'similarity': round(similarity, 2),
+                                'fromAliasMatch': True  # << ADD THIS FLAG
+                            })
+
+                # Step 2: If no alias match, fallback to normal best match
+                if not matches:
+                    for name in df[column]:
+                        if name.strip().lower() == speaker_name.strip().lower():
+                            matches.append({
+                                'name': name,
+                                'similarity': 1.0,  # Exact match
+                                'fromAliasMatch': False  # << NOT from database
+                            })
+                        else:
+                            similarity = calculate_weighted_simhash(speaker_name, name,
+                                                                    categorize_func=categorize_token, weights=weights)
+                            if similarity >= 0.65:
+                                matches.append({
+                                    'name': name,
+                                    'similarity': round(similarity, 2),
+                                    'fromAliasMatch': False  # << NOT from database
+                                })
+
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:
                     result[f'matched_{key}'] = [matches[0]]
 
-        # Append result if there is any match
+        # Only add result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):
             results.append(result)
 
@@ -221,6 +230,53 @@ def confirm_to_group():
         db.session.commit()
 
     return jsonify({"message": "Speaker and matched names added into one group"}), 200
+
+@app.route('/unconfirm', methods=['POST'])
+def unconfirm_from_group():
+    data = request.json
+    speaker = data.get('speaker')
+    fields = data.get('fields', [])
+
+    if not speaker or not fields:
+        return jsonify({"error": "Missing speaker or fields"}), 400
+
+    # Collect aliases to remove (only matched ones)
+    aliases_to_remove = set()
+    for field in fields:
+        matched = data.get(f'matched_{field}')
+        if matched:
+            aliases_to_remove.add(matched)
+
+    groups = CompanyGroup.query.all()
+    target_group = None
+
+    for group in groups:
+        if speaker in group.aliases:
+            target_group = group
+            break
+
+    if not target_group:
+        return jsonify({"error": "No matching group found to unconfirm"}), 400
+
+    # Logic: remove only the matched names, NOT speaker yet
+    updated_aliases = [alias for alias in target_group.aliases if alias not in aliases_to_remove]
+
+    if speaker not in updated_aliases:
+        # Special case: if somehow speaker was also marked for removal manually
+        updated_aliases.append(speaker)
+
+    # Now check if speaker is the only one left
+    if updated_aliases == [speaker]:
+        # Only speaker left after removal, so delete entire group
+        db.session.delete(target_group)
+        db.session.commit()
+        return jsonify({"message": "Group deleted because only speaker left"}), 200
+    else:
+        # Otherwise update normally
+        target_group.aliases = updated_aliases
+        db.session.commit()
+        return jsonify({"message": "Selected aliases unconfirmed, speaker preserved"}), 200
+
 
 
 

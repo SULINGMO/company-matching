@@ -120,49 +120,51 @@ def upload_file():
             'matched_address': []
         }
 
-        matched_from_group = False
+        company_groups = CompanyGroup.query.all()
+        speaker_aliases = []
 
-        # Step 1: Try match from existing company_groups
+        # Find aliases for this speaker if it exists
         for group in company_groups:
-            for alias in group.aliases:
-                similarity = calculate_weighted_simhash(
-                    speaker_name, alias,
-                    categorize_func=categorize_token,
-                    weights=weights
-                )
-                if similarity >= 0.65:
-                    for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']:
-                        result[key] = [{
-                            'name': alias,
-                            'similarity': round(similarity, 2)
-                        }]
-                    matched_from_group = True
-                    break
-            if matched_from_group:
+            if speaker_name in group.aliases:
+                speaker_aliases = group.aliases
                 break
 
-        # Step 2: Fallback to file-based matching if no match in group
-        if not matched_from_group:
-            for key, names in all_names.items():
-                matches = []
-                for name in names:
-                    if speaker_name == name:
-                        continue
-                    similarity = calculate_weighted_simhash(
-                        speaker_name, name,
-                        categorize_func=categorize_token,
-                        weights=weights
-                    )
-                    if similarity >= 0.65:
-                        matches.append({
-                            'name': name,
-                            'similarity': round(similarity, 2)
-                        })
+        for key in ['account', 'contact', 'linkedin', 'address']:
+            matches = []
+            if key in uploaded_files:
+                df = uploaded_files[key]
+                column = 'Account Name' if key in ['account', 'contact'] else 'Company'
+
+                # Step 1: Try matching uploaded file against database aliases
+                for name in df[column]:
+                    if any(calculate_weighted_simhash(name, alias, categorize_func=categorize_token,
+                                                      weights=weights) >= 0.65 for alias in speaker_aliases):
+                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
+                                                                weights=weights)
+                        if similarity >= 0.65:
+                            matches.append({
+                                'name': name,
+                                'similarity': round(similarity, 2)
+                            })
+
+                # Step 2: If no alias match, fallback to normal best match
+                if not matches:
+                    for name in df[column]:
+                        if speaker_name == name:
+                            continue
+                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
+                                                                weights=weights)
+                        if similarity >= 0.65:
+                            matches.append({
+                                'name': name,
+                                'similarity': round(similarity, 2)
+                            })
+
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:
                     result[f'matched_{key}'] = [matches[0]]
 
-        # Append result if there is any match
+        # Only add result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):
             results.append(result)
 

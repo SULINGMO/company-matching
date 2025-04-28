@@ -150,15 +150,19 @@ def upload_file():
                 # Step 2: If no alias match, fallback to normal best match
                 if not matches:
                     for name in df[column]:
-                        if speaker_name == name:
-                            continue
-                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
-                                                                weights=weights)
-                        if similarity >= 0.65:
+                        if name.strip().lower() == speaker_name.strip().lower():
                             matches.append({
                                 'name': name,
-                                'similarity': round(similarity, 2)
+                                'similarity': 1.0  # Force similarity = 100%
                             })
+                        else:
+                            similarity = calculate_weighted_simhash(speaker_name, name,
+                                                                    categorize_func=categorize_token, weights=weights)
+                            if similarity >= 0.65:
+                                matches.append({
+                                    'name': name,
+                                    'similarity': round(similarity, 2)
+                                })
 
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:

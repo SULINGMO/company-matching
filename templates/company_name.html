@@ -292,20 +292,6 @@ rowData += `
       }
     }
 
-    async function unconfirmMatch(speaker) {
-      const field = prompt('Enter field to unconfirm (account, contact, linkedin, address, or leave blank for all):');
-      const response = await fetch('/unconfirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ speaker, field })
-      });
-
-      if (response.ok) {
-        alert('Match unconfirmed!');
-      } else {
-        alert('Error unconfirming match');
-      }
-    }
     async function confirmSelectedMatches(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
   const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
@@ -315,18 +301,51 @@ rowData += `
     return;
   }
 
+  const row = Array.from(document.querySelectorAll("#resultsBody tr")).find(r =>
+    r.firstChild?.textContent?.trim() === speaker
+  );
+
+  const typeToIndexOffset = {
+    'account': 1,
+    'contact': 3,
+    'address': 5,
+    'linkedin': 7
+  };
+
+  const payload = {
+    speaker: speaker,
+    fields: selectedTypes
+  };
+
+  selectedTypes.forEach(type => {
+    const colIndex = typeToIndexOffset[type];
+    if (colIndex !== undefined && row?.children[colIndex]) {
+      const matchedName = row.children[colIndex].textContent?.trim();
+      if (matchedName && matchedName !== 'None') {
+        payload[`matched_${type}`] = matchedName;
+      }
+    }
+  });
+
+  console.log("🔍 Confirm Payload:", payload);  // <-- DEBUG
+
   const response = await fetch('/confirm', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ speaker, fields: selectedTypes })
+    body: JSON.stringify(payload)
   });
 
   if (response.ok) {
     alert('Selected matches confirmed!');
+    const result = await response.json();
+    console.log("✅ Server response:", result);  // <-- DEBUG
   } else {
+    const error = await response.text();
+    console.error("❌ Server error:", error);  // <-- DEBUG
     alert('Error confirming selected matches.');
   }
 }
+
 
   </script>
 </body>

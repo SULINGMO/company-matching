@@ -144,7 +144,8 @@ def upload_file():
                         if similarity >= 0.65:
                             matches.append({
                                 'name': name,
-                                'similarity': round(similarity, 2)
+                                'similarity': round(similarity, 2),
+                                'fromAliasMatch': True  # << ADD THIS FLAG
                             })
 
                 # Step 2: If no alias match, fallback to normal best match
@@ -153,7 +154,8 @@ def upload_file():
                         if name.strip().lower() == speaker_name.strip().lower():
                             matches.append({
                                 'name': name,
-                                'similarity': 1.0  # Force similarity = 100%
+                                'similarity': 1.0,  # Exact match
+                                'fromAliasMatch': False  # << NOT from database
                             })
                         else:
                             similarity = calculate_weighted_simhash(speaker_name, name,
@@ -161,7 +163,8 @@ def upload_file():
                             if similarity >= 0.65:
                                 matches.append({
                                     'name': name,
-                                    'similarity': round(similarity, 2)
+                                    'similarity': round(similarity, 2),
+                                    'fromAliasMatch': False  # << NOT from database
                                 })
 
                 matches = sorted(matches, key=lambda x: -x['similarity'])

@@ -351,7 +351,7 @@ if (availableColumns.includes('linkedin')) {
       }
     }
 
-    async function confirmSelectedMatches(speaker) {
+   async function confirmSelectedMatches(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
   const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
 
@@ -384,14 +384,14 @@ if (availableColumns.includes('linkedin')) {
       const colIndex = typeToIndexOffset[type];
       if (colIndex !== undefined && row?.children[colIndex]) {
         const matchedName = row.children[colIndex].textContent?.trim();
-        if (matchedName && matchedName !== 'None') {
+        if (matchedName && matchedName !== '') {
           payload[`matched_${type}`] = matchedName;
         }
       }
     }
   });
 
-  console.log("DEBUG Payload being sent:", payload);  // 🔥
+  console.log("DEBUG Payload being sent:", payload);
 
   const response = await fetch('/confirm', {
     method: 'POST',
@@ -401,10 +401,21 @@ if (availableColumns.includes('linkedin')) {
 
   if (response.ok) {
     alert('Selected matches confirmed!');
+
+    // ✅ After confirm, immediately update class to yellow
+    checkboxes.forEach(cb => {
+      const div = cb.closest('div');
+      if (div) {
+        div.classList.remove('manual-added');
+        div.classList.add('highlight-100');
+      }
+    });
+
   } else {
     alert('Error confirming selected matches.');
   }
 }
+
 
 
 
@@ -441,14 +452,14 @@ async function unconfirmMatch(speaker) {
       const colIndex = typeToIndexOffset[type];
       if (colIndex !== undefined && row?.children[colIndex]) {
         const matchedName = row.children[colIndex].textContent?.trim();
-        if (matchedName && matchedName !== 'None') {
+        if (matchedName && matchedName !== '') {
           payload[`matched_${type}`] = matchedName;
         }
       }
     }
   });
 
-  console.log("DEBUG Payload being sent for unconfirm:", payload);  // 🔥
+  console.log("DEBUG Payload being sent for unconfirm:", payload);
 
   const response = await fetch('/unconfirm', {
     method: 'POST',
@@ -458,10 +469,21 @@ async function unconfirmMatch(speaker) {
 
   if (response.ok) {
     alert('Selected matches unconfirmed!');
+
+    // ✅ After unconfirm, immediately remove yellow color
+    checkboxes.forEach(cb => {
+      const div = cb.closest('div');
+      if (div) {
+        div.classList.remove('highlight-100');
+        div.classList.remove('manual-added');
+      }
+    });
+
   } else {
     alert('Error unconfirming selected matches.');
   }
 }
+
 
 
 

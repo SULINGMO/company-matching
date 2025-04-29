@@ -220,63 +220,107 @@
     const row = document.createElement("tr");
     let rowData = `<td>${result.speaker || 'None'}</td>`;
 
-    function generateCellContent(item) {
+    function generateCellContent(item, type, speaker) {
       if (!item) return { nameCell: '<td>None</td>', similarityCell: '<td>N/A</td>' };
 
       let highlightClass = "";
 
       if (item.similarity === 1) {
-        // Exact same name as speaker
         highlightClass = "manual-added"; // Green
       } else if (item.fromAliasMatch) {
-        // From database alias group
         highlightClass = "highlight-100"; // Yellow
       }
 
       return {
-        nameCell: `<td class="${highlightClass}">${item.name}</td>`,
-        similarityCell: `<td class="${highlightClass}">${(item.similarity * 100).toFixed(0)}%</td>`
+        nameCell: `
+          <td style="vertical-align: top;">
+            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox"
+                     class="match-checkbox"
+                     data-type="${type}"
+                     data-speaker="${speaker}"
+                     data-name="${item.name}">
+              ${item.name}
+            </div>
+          </td>
+        `,
+        similarityCell: `
+          <td style="vertical-align: top;">
+            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+              ${(item.similarity * 100).toFixed(0)}%
+            </div>
+          </td>
+        `
       };
     }
 
+
     if (availableColumns.includes('account')) {
-      const acc = result.matched_account?.[0];
-      const { nameCell, similarityCell } = generateCellContent(acc);
-      rowData += nameCell + similarityCell;
-    }
+  const acc = result.matched_account?.[0];
+  const { nameCell, similarityCell } = generateCellContent(acc, 'account', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('contact')) {
-      const con = result.matched_contact?.[0];
-      const { nameCell, similarityCell } = generateCellContent(con);
-      rowData += nameCell + similarityCell;
-    }
+if (availableColumns.includes('contact')) {
+  const con = result.matched_contact?.[0];
+  const { nameCell, similarityCell } = generateCellContent(con, 'contact', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('address')) {
-      const addr = result.matched_address?.[0];
-      const { nameCell, similarityCell } = generateCellContent(addr);
-      rowData += nameCell + similarityCell;
-    }
+if (availableColumns.includes('address')) {
+  const addr = result.matched_address?.[0];
+  const { nameCell, similarityCell } = generateCellContent(addr, 'address', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('linkedin')) {
-      const li = result.matched_linkedin?.[0];
-      const { nameCell, similarityCell } = generateCellContent(li);
-      rowData += nameCell + similarityCell;
-    }
+if (availableColumns.includes('linkedin')) {
+  if (result.matched_linkedin && result.matched_linkedin.length > 0) {
+    let nameCell = '<td style="vertical-align: top;">';
+    let similarityCell = '<td style="vertical-align: top;">';
+    const seenNames = new Set();
+
+    result.matched_linkedin.forEach((item, index) => {
+      if (!seenNames.has(item.name)) {
+        seenNames.add(item.name);
+
+        let highlightClass = "";
+        if (item.similarity === 1) {
+          highlightClass = "manual-added";
+        } else if (item.fromAliasMatch) {
+          highlightClass = "highlight-100";
+        }
+
+        nameCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox"
+                   class="match-checkbox"
+                   data-type="linkedin"
+                   data-speaker="${result.speaker}"
+                   data-name="${item.name}">
+            ${item.name}
+          </div>
+        `;
+
+        similarityCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            ${(item.similarity * 100).toFixed(0)}%
+          </div>
+        `;
+      }
+    });
+
+    nameCell += '</td>';
+    similarityCell += '</td>';
+
+    rowData += nameCell + similarityCell;
+  } else {
+    rowData += '<td>None</td><td>N/A</td>';
+  }
+}
 
     rowData += `<td>`;
 
-    if (availableColumns.includes('account') && result.matched_account?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="account" data-speaker="${result.speaker}"> Account</label><br>`;
-    }
-    if (availableColumns.includes('contact') && result.matched_contact?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="contact" data-speaker="${result.speaker}"> Contact</label><br>`;
-    }
-    if (availableColumns.includes('address') && result.matched_address?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="address" data-speaker="${result.speaker}"> Address</label><br>`;
-    }
-    if (availableColumns.includes('linkedin') && result.matched_linkedin?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="linkedin" data-speaker="${result.speaker}"> LinkedIn</label><br>`;
-    }
+
 
     rowData += `
       <button class="confirm-btn" onclick="confirmSelectedMatches('${result.speaker}')">Confirm</button>
@@ -332,16 +376,21 @@
   };
 
   selectedTypes.forEach(type => {
-    const colIndex = typeToIndexOffset[type];
-    if (colIndex !== undefined && row?.children[colIndex]) {
-      const matchedName = row.children[colIndex].textContent?.trim();
-      if (matchedName && matchedName !== 'None') {
-        payload[`matched_${type}`] = matchedName;
+    if (type === 'linkedin') {
+      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
+      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
+    } else {
+      const colIndex = typeToIndexOffset[type];
+      if (colIndex !== undefined && row?.children[colIndex]) {
+        const matchedName = row.children[colIndex].textContent?.trim();
+        if (matchedName && matchedName !== 'None') {
+          payload[`matched_${type}`] = matchedName;
+        }
       }
     }
   });
 
-  console.log("🔍 Confirm Payload:", payload);  // <-- DEBUG
+  console.log("DEBUG Payload being sent:", payload);  // 🔥
 
   const response = await fetch('/confirm', {
     method: 'POST',
@@ -351,14 +400,12 @@
 
   if (response.ok) {
     alert('Selected matches confirmed!');
-    const result = await response.json();
-    console.log("✅ Server response:", result);  // <-- DEBUG
   } else {
-    const error = await response.text();
-    console.error("❌ Server error:", error);  // <-- DEBUG
     alert('Error confirming selected matches.');
   }
 }
+
+
 
 async function unconfirmMatch(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
@@ -386,16 +433,21 @@ async function unconfirmMatch(speaker) {
   };
 
   selectedTypes.forEach(type => {
-    const colIndex = typeToIndexOffset[type];
-    if (colIndex !== undefined && row?.children[colIndex]) {
-      const matchedName = row.children[colIndex].textContent?.trim();
-      if (matchedName && matchedName !== 'None') {
-        payload[`matched_${type}`] = matchedName;
+    if (type === 'linkedin') {
+      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
+      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
+    } else {
+      const colIndex = typeToIndexOffset[type];
+      if (colIndex !== undefined && row?.children[colIndex]) {
+        const matchedName = row.children[colIndex].textContent?.trim();
+        if (matchedName && matchedName !== 'None') {
+          payload[`matched_${type}`] = matchedName;
+        }
       }
     }
   });
 
-  console.log("🔍 Unconfirm Payload:", payload);  // Debug
+  console.log("DEBUG Payload being sent for unconfirm:", payload);  // 🔥
 
   const response = await fetch('/unconfirm', {
     method: 'POST',
@@ -405,14 +457,12 @@ async function unconfirmMatch(speaker) {
 
   if (response.ok) {
     alert('Selected matches unconfirmed!');
-    const result = await response.json();
-    console.log("✅ Server response:", result);  // Debug
   } else {
-    const error = await response.text();
-    console.error("❌ Server error:", error);  // Debug
     alert('Error unconfirming selected matches.');
   }
 }
+
+
 
 
 

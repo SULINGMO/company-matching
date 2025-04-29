@@ -151,7 +151,7 @@ def upload_file():
                     for name in df[column]:
                         similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
                                                                 weights=weights)
-                        if similarity >= 0.65:
+                        if similarity >= 0.7:
                             matches.append({
                                 'name': name,
                                 'similarity': round(similarity, 2),
@@ -160,7 +160,10 @@ def upload_file():
 
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:
-                    result[f'matched_{key}'] = [matches[0]]
+                    if key == 'linkedin':
+                        result[f'matched_{key}'] = matches[:5]  # top 5 for LinkedIn
+                    else:
+                        result[f'matched_{key}'] = [matches[0]]  # still show only 1 best for others
 
         # Only add result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):
@@ -183,44 +186,51 @@ def upload_file():
     print(json.dumps(results, indent=2))
     return jsonify(results)
 
+
 @app.route('/confirm', methods=['POST'])
 def confirm_to_group():
     data = request.json
+    print("DEBUG Incoming Payload:", data)  # 🔥 DEBUG PAYLOAD
+
     speaker = data.get('speaker')
     fields = data.get('fields', [])
 
     if not speaker or not fields:
         return jsonify({"error": "Missing speaker or fields"}), 400
 
-    # Combine all matched values
     aliases_to_add = set([speaker])
+
     for field in fields:
+        print(f"DEBUG Checking field: {field}")  # 🔥
         matched = data.get(f'matched_{field}')
-        if matched:
+        print(f"DEBUG Matched Value for {field}:", matched)  # 🔥
+
+        if isinstance(matched, list):
+            aliases_to_add.update(matched)
+        elif isinstance(matched, str):
             aliases_to_add.add(matched)
 
-    # Load all current groups
-    groups = CompanyGroup.query.all()
+    print("DEBUG Final Aliases to Add:", aliases_to_add)  # 🔥
 
-    # Step 1: Try to find a group that contains any alias (or speaker)
+    groups = CompanyGroup.query.all()
     target_group = None
+
     for group in groups:
         if any(alias in group.aliases for alias in aliases_to_add):
             target_group = group
             break
 
     if target_group:
-        # Add all aliases that are not already in the group
-        new_aliases = list(set(group.aliases + list(aliases_to_add)))
+        new_aliases = list(set(target_group.aliases + list(aliases_to_add)))
         target_group.aliases = new_aliases
         db.session.commit()
     else:
-        # Create new group if no match found
         new_group = CompanyGroup(aliases=list(aliases_to_add))
         db.session.add(new_group)
         db.session.commit()
 
     return jsonify({"message": "Speaker and matched names added into one group"}), 200
+
 
 @app.route('/unconfirm', methods=['POST'])
 def unconfirm_from_group():
@@ -231,11 +241,13 @@ def unconfirm_from_group():
     if not speaker or not fields:
         return jsonify({"error": "Missing speaker or fields"}), 400
 
-    # Collect aliases to remove (only matched ones)
     aliases_to_remove = set()
+
     for field in fields:
         matched = data.get(f'matched_{field}')
-        if matched:
+        if isinstance(matched, list):
+            aliases_to_remove.update(matched)
+        elif isinstance(matched, str):
             aliases_to_remove.add(matched)
 
     groups = CompanyGroup.query.all()
@@ -249,24 +261,20 @@ def unconfirm_from_group():
     if not target_group:
         return jsonify({"error": "No matching group found to unconfirm"}), 400
 
-    # Logic: remove only the matched names, NOT speaker yet
     updated_aliases = [alias for alias in target_group.aliases if alias not in aliases_to_remove]
 
     if speaker not in updated_aliases:
-        # Special case: if somehow speaker was also marked for removal manually
         updated_aliases.append(speaker)
 
-    # Now check if speaker is the only one left
     if updated_aliases == [speaker]:
-        # Only speaker left after removal, so delete entire group
         db.session.delete(target_group)
         db.session.commit()
         return jsonify({"message": "Group deleted because only speaker left"}), 200
     else:
-        # Otherwise update normally
         target_group.aliases = updated_aliases
         db.session.commit()
         return jsonify({"message": "Selected aliases unconfirmed, speaker preserved"}), 200
+
 
 
 

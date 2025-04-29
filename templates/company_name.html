@@ -221,7 +221,7 @@
     let rowData = `<td>${result.speaker || 'None'}</td>`;
 
     function generateCellContent(item, type, speaker) {
-      if (!item) return { nameCell: '<td>None</td>', similarityCell: '<td>N/A</td>' };
+      if (!item) return { nameCell: '<td></td>', similarityCell: '<td></td>' };
 
       let highlightClass = "";
 
@@ -314,7 +314,8 @@ if (availableColumns.includes('linkedin')) {
 
     rowData += nameCell + similarityCell;
   } else {
-    rowData += '<td>None</td><td>N/A</td>';
+    rowData += '<td></td><td></td>';
+
   }
 }
 

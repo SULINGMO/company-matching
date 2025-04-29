@@ -304,8 +304,24 @@
     if (availableColumns.includes('address') && result.matched_address?.[0]) {
       rowData += `<label><input type="checkbox" class="match-checkbox" data-type="address" data-speaker="${result.speaker}"> Address</label><br>`;
     }
-    if (availableColumns.includes('linkedin') && result.matched_linkedin?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="linkedin" data-speaker="${result.speaker}"> LinkedIn</label><br>`;
+    if (availableColumns.includes('linkedin') && result.matched_linkedin?.length > 0) {
+      const seenLinkedinNames = new Set();
+
+      result.matched_linkedin.forEach((liItem, index) => {
+        if (!seenLinkedinNames.has(liItem.name)) {
+          seenLinkedinNames.add(liItem.name);
+          rowData += `
+            <label style="display:block;">
+              <input type="checkbox"
+                     class="match-checkbox"
+                     data-type="linkedin"
+                     data-speaker="${result.speaker}"
+                     data-name="${liItem.name}">
+              LinkedIn Option ${index + 1}
+            </label>
+          `;
+        }
+      });
     }
 
     rowData += `
@@ -362,16 +378,21 @@
   };
 
   selectedTypes.forEach(type => {
-    const colIndex = typeToIndexOffset[type];
-    if (colIndex !== undefined && row?.children[colIndex]) {
-      const matchedName = row.children[colIndex].textContent?.trim();
-      if (matchedName && matchedName !== 'None') {
-        payload[`matched_${type}`] = matchedName;
+    if (type === 'linkedin') {
+      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
+      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
+    } else {
+      const colIndex = typeToIndexOffset[type];
+      if (colIndex !== undefined && row?.children[colIndex]) {
+        const matchedName = row.children[colIndex].textContent?.trim();
+        if (matchedName && matchedName !== 'None') {
+          payload[`matched_${type}`] = matchedName;
+        }
       }
     }
   });
 
-  console.log("🔍 Confirm Payload:", payload);  // <-- DEBUG
+  console.log("DEBUG Payload being sent:", payload);  // 🔥
 
   const response = await fetch('/confirm', {
     method: 'POST',
@@ -381,14 +402,12 @@
 
   if (response.ok) {
     alert('Selected matches confirmed!');
-    const result = await response.json();
-    console.log("✅ Server response:", result);  // <-- DEBUG
   } else {
-    const error = await response.text();
-    console.error("❌ Server error:", error);  // <-- DEBUG
     alert('Error confirming selected matches.');
   }
 }
+
+
 
 async function unconfirmMatch(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
@@ -416,16 +435,21 @@ async function unconfirmMatch(speaker) {
   };
 
   selectedTypes.forEach(type => {
-    const colIndex = typeToIndexOffset[type];
-    if (colIndex !== undefined && row?.children[colIndex]) {
-      const matchedName = row.children[colIndex].textContent?.trim();
-      if (matchedName && matchedName !== 'None') {
-        payload[`matched_${type}`] = matchedName;
+    if (type === 'linkedin') {
+      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
+      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
+    } else {
+      const colIndex = typeToIndexOffset[type];
+      if (colIndex !== undefined && row?.children[colIndex]) {
+        const matchedName = row.children[colIndex].textContent?.trim();
+        if (matchedName && matchedName !== 'None') {
+          payload[`matched_${type}`] = matchedName;
+        }
       }
     }
   });
 
-  console.log("🔍 Unconfirm Payload:", payload);  // Debug
+  console.log("DEBUG Payload being sent for unconfirm:", payload);  // 🔥
 
   const response = await fetch('/unconfirm', {
     method: 'POST',
@@ -435,14 +459,12 @@ async function unconfirmMatch(speaker) {
 
   if (response.ok) {
     alert('Selected matches unconfirmed!');
-    const result = await response.json();
-    console.log("✅ Server response:", result);  // Debug
   } else {
-    const error = await response.text();
-    console.error("❌ Server error:", error);  // Debug
     alert('Error unconfirming selected matches.');
   }
 }
+
+
 
 
 

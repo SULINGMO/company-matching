@@ -151,7 +151,7 @@ def upload_file():
                     for name in df[column]:
                         similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
                                                                 weights=weights)
-                        if similarity >= 0.65:
+                        if similarity >= 0.7:
                             matches.append({
                                 'name': name,
                                 'similarity': round(similarity, 2),
@@ -160,7 +160,10 @@ def upload_file():
 
                 matches = sorted(matches, key=lambda x: -x['similarity'])
                 if matches:
-                    result[f'matched_{key}'] = [matches[0]]
+                    if key == 'linkedin':
+                        result[f'matched_{key}'] = matches[:5]  # top 5 for LinkedIn
+                    else:
+                        result[f'matched_{key}'] = [matches[0]]  # still show only 1 best for others
 
         # Only add result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):

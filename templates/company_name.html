@@ -258,10 +258,40 @@
     }
 
     if (availableColumns.includes('linkedin')) {
-      const li = result.matched_linkedin?.[0];
-      const { nameCell, similarityCell } = generateCellContent(li);
-      rowData += nameCell + similarityCell;
-    }
+  let nameCell = '<td style="vertical-align: top;">';
+  let similarityCell = '<td style="vertical-align: top;">';
+
+  if (result.matched_linkedin && result.matched_linkedin.length > 0) {
+    const seenNames = new Set();
+
+    result.matched_linkedin.forEach(item => {
+      if (!seenNames.has(item.name)) {
+        seenNames.add(item.name);
+
+        let highlightClass = "";
+
+        if (item.similarity === 1) {
+          highlightClass = "manual-added";  // Green if exact
+        } else if (item.fromAliasMatch) {
+          highlightClass = "highlight-100"; // Yellow if alias match
+        }
+
+        nameCell += `<div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px;">${item.name}</div>`;
+        similarityCell += `<div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">${(item.similarity * 100).toFixed(0)}%</div>`;
+      }
+    });
+  } else {
+    nameCell += 'None';
+    similarityCell += 'N/A';
+  }
+
+  nameCell += '</td>';
+  similarityCell += '</td>';
+
+  rowData += nameCell + similarityCell;
+}
+
+
 
     rowData += `<td>`;
 

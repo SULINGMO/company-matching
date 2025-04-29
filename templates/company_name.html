@@ -220,109 +220,107 @@
     const row = document.createElement("tr");
     let rowData = `<td>${result.speaker || 'None'}</td>`;
 
-    function generateCellContent(item) {
+    function generateCellContent(item, type, speaker) {
       if (!item) return { nameCell: '<td>None</td>', similarityCell: '<td>N/A</td>' };
 
       let highlightClass = "";
 
       if (item.similarity === 1) {
-        // Exact same name as speaker
         highlightClass = "manual-added"; // Green
       } else if (item.fromAliasMatch) {
-        // From database alias group
         highlightClass = "highlight-100"; // Yellow
       }
 
       return {
-        nameCell: `<td class="${highlightClass}">${item.name}</td>`,
-        similarityCell: `<td class="${highlightClass}">${(item.similarity * 100).toFixed(0)}%</td>`
+        nameCell: `
+          <td style="vertical-align: top;">
+            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox"
+                     class="match-checkbox"
+                     data-type="${type}"
+                     data-speaker="${speaker}"
+                     data-name="${item.name}">
+              ${item.name}
+            </div>
+          </td>
+        `,
+        similarityCell: `
+          <td style="vertical-align: top;">
+            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+              ${(item.similarity * 100).toFixed(0)}%
+            </div>
+          </td>
+        `
       };
     }
 
+
     if (availableColumns.includes('account')) {
-      const acc = result.matched_account?.[0];
-      const { nameCell, similarityCell } = generateCellContent(acc);
-      rowData += nameCell + similarityCell;
-    }
+  const acc = result.matched_account?.[0];
+  const { nameCell, similarityCell } = generateCellContent(acc, 'account', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('contact')) {
-      const con = result.matched_contact?.[0];
-      const { nameCell, similarityCell } = generateCellContent(con);
-      rowData += nameCell + similarityCell;
-    }
+if (availableColumns.includes('contact')) {
+  const con = result.matched_contact?.[0];
+  const { nameCell, similarityCell } = generateCellContent(con, 'contact', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('address')) {
-      const addr = result.matched_address?.[0];
-      const { nameCell, similarityCell } = generateCellContent(addr);
-      rowData += nameCell + similarityCell;
-    }
+if (availableColumns.includes('address')) {
+  const addr = result.matched_address?.[0];
+  const { nameCell, similarityCell } = generateCellContent(addr, 'address', result.speaker);
+  rowData += nameCell + similarityCell;
+}
 
-    if (availableColumns.includes('linkedin')) {
-  let nameCell = '<td style="vertical-align: top;">';
-  let similarityCell = '<td style="vertical-align: top;">';
-
+if (availableColumns.includes('linkedin')) {
   if (result.matched_linkedin && result.matched_linkedin.length > 0) {
+    let nameCell = '<td style="vertical-align: top;">';
+    let similarityCell = '<td style="vertical-align: top;">';
     const seenNames = new Set();
 
-    result.matched_linkedin.forEach(item => {
+    result.matched_linkedin.forEach((item, index) => {
       if (!seenNames.has(item.name)) {
         seenNames.add(item.name);
 
         let highlightClass = "";
-
         if (item.similarity === 1) {
-          highlightClass = "manual-added";  // Green if exact
+          highlightClass = "manual-added";
         } else if (item.fromAliasMatch) {
-          highlightClass = "highlight-100"; // Yellow if alias match
+          highlightClass = "highlight-100";
         }
 
-        nameCell += `<div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px;">${item.name}</div>`;
-        similarityCell += `<div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">${(item.similarity * 100).toFixed(0)}%</div>`;
+        nameCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox"
+                   class="match-checkbox"
+                   data-type="linkedin"
+                   data-speaker="${result.speaker}"
+                   data-name="${item.name}">
+            ${item.name}
+          </div>
+        `;
+
+        similarityCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            ${(item.similarity * 100).toFixed(0)}%
+          </div>
+        `;
       }
     });
+
+    nameCell += '</td>';
+    similarityCell += '</td>';
+
+    rowData += nameCell + similarityCell;
   } else {
-    nameCell += 'None';
-    similarityCell += 'N/A';
+    rowData += '<td>None</td><td>N/A</td>';
   }
-
-  nameCell += '</td>';
-  similarityCell += '</td>';
-
-  rowData += nameCell + similarityCell;
 }
-
-
 
     rowData += `<td>`;
 
-    if (availableColumns.includes('account') && result.matched_account?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="account" data-speaker="${result.speaker}"> Account</label><br>`;
-    }
-    if (availableColumns.includes('contact') && result.matched_contact?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="contact" data-speaker="${result.speaker}"> Contact</label><br>`;
-    }
-    if (availableColumns.includes('address') && result.matched_address?.[0]) {
-      rowData += `<label><input type="checkbox" class="match-checkbox" data-type="address" data-speaker="${result.speaker}"> Address</label><br>`;
-    }
-    if (availableColumns.includes('linkedin') && result.matched_linkedin?.length > 0) {
-      const seenLinkedinNames = new Set();
 
-      result.matched_linkedin.forEach((liItem, index) => {
-        if (!seenLinkedinNames.has(liItem.name)) {
-          seenLinkedinNames.add(liItem.name);
-          rowData += `
-            <label style="display:block;">
-              <input type="checkbox"
-                     class="match-checkbox"
-                     data-type="linkedin"
-                     data-speaker="${result.speaker}"
-                     data-name="${liItem.name}">
-              LinkedIn Option ${index + 1}
-            </label>
-          `;
-        }
-      });
-    }
 
     rowData += `
       <button class="confirm-btn" onclick="confirmSelectedMatches('${result.speaker}')">Confirm</button>

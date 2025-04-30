@@ -1,1 +1,1 @@
-web: gunicorn company_name:app
+web: gunicorn company_name:app --timeout 500

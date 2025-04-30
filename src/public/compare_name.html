@@ -274,22 +274,48 @@
     }
 
     if (availableColumns.includes('linkedin')) {
-      if (result.matched_linkedin && result.matched_linkedin.length > 0) {
-        let nameCell = '<td style="vertical-align: top;">';
-        let similarityCell = '<td style="vertical-align: top;">';
-        const seenNames = new Set();
+  const matches = result.matched_linkedin || [];
+  let nameCell = '<td style="vertical-align: top;">';
+  let similarityCell = '<td style="vertical-align: top;">';
 
-        result.matched_linkedin.forEach(item => {
-          if (seenNames.has(item.name)) return;
-          seenNames.add(item.name);
-          const { nameCell: newNameCell, similarityCell: newSimCell } = generateCellContent(item, 'linkedin', result.speaker);
-          nameCell += newNameCell;
-          similarityCell += newSimCell;
-        });
+  const seenNames = new Set();
+  matches.forEach(item => {
+    if (seenNames.has(item.name)) return;
+    seenNames.add(item.name);
 
-        rowData += nameCell + similarityCell;
-      }
+    let highlightClass = "";
+    if (item.similarity === 1) {
+      highlightClass = "manual-added";
+    } else if (item.similarity === 2) {
+      highlightClass = "highlight-200";
+    } else if (item.fromAliasMatch) {
+      highlightClass = "highlight-100";
     }
+
+    nameCell += `
+      <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+        <input type="checkbox"
+               class="match-checkbox"
+               data-type="linkedin"
+               data-speaker="${result.speaker}"
+               data-name="${item.name}">
+        ${item.name}
+      </div>
+    `;
+
+    similarityCell += `
+      <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+        ${(item.similarity * 100).toFixed(0)}%
+      </div>
+    `;
+  });
+
+  nameCell += '</td>';
+  similarityCell += '</td>';
+
+  rowData += nameCell + similarityCell;
+}
+
 
     // Add the actions column
     rowData += `
@@ -306,7 +332,7 @@
   document.getElementById("resultTable").style.display = 'block';
 }
 
-async function confirmSelectedMatches(speaker) {
+async function confirmMatch(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
   const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
 

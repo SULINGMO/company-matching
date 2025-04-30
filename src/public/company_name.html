@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,9 +33,8 @@
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
 
-
     .manual-added {
-    background-color: #eaf4ea !important;
+      background-color: #eaf4ea !important;
     }
 
     label {
@@ -71,7 +71,8 @@
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
     }
 
-    th, td {
+    th,
+    td {
       padding: 12px;
       border: 1px solid #ddd;
       text-align: left;
@@ -93,8 +94,11 @@
     .highlight-100 {
       background-color: #fffbe6 !important;
     }
-
-    .confirm-btn, .unconfirm-btn {
+    .highlight-200 {
+      background-color: #b5c9e3 !important;
+    }
+    .confirm-btn,
+    .unconfirm-btn {
       margin-top: 6px;
       padding: 6px 12px;
       border-radius: 4px;
@@ -134,10 +138,9 @@
       background-color: #ccc !important;
       cursor: not-allowed;
     }
-
-
   </style>
 </head>
+
 <body>
   <h2>Upload Company Lists</h2>
   <form id="uploadForm" enctype="multipart/form-data">
@@ -157,21 +160,20 @@
   </table>
 
   <script>
-   document.getElementById("uploadForm").addEventListener("submit", async function(event) {
-  event.preventDefault();
-  const formData = new FormData(this);
+    document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const formData = new FormData(this);
 
-  const form = this;
-  const availableColumns = [];
+      const form = this;
+      const availableColumns = [];
 
-  if (form.speaker.files.length > 0) availableColumns.push('speaker');
-  if (form.account.files.length > 0) availableColumns.push('account');
-  if (form.contact.files.length > 0) availableColumns.push('contact');
-  if (form.address.files.length > 0) availableColumns.push('address');
-  if (form.linkedin.files.length > 0) availableColumns.push('linkedin');
+      if (form.speaker.files.length > 0) availableColumns.push('speaker');
+      if (form.account.files.length > 0) availableColumns.push('account');
+      if (form.contact.files.length > 0) availableColumns.push('contact');
+      if (form.address.files.length > 0) availableColumns.push('address');
+      if (form.linkedin.files.length > 0) availableColumns.push('linkedin');
 
-  console.log('Available columns:', availableColumns);
-
+      console.log('Available columns:', availableColumns);
 
       const response = await fetch('/upload', {
         method: 'POST',
@@ -187,32 +189,32 @@
       }
     });
 
-  function updateTableHeaders(availableColumns) {
-  const headers = document.querySelector("#resultTable thead tr");
-  headers.innerHTML = "";  // Clear old headers
+    function updateTableHeaders(availableColumns) {
+      const headers = document.querySelector("#resultTable thead tr");
+      headers.innerHTML = ""; // Clear old headers
 
-  headers.innerHTML += `<th>Speaker Company</th>`; // ✅
+      headers.innerHTML += "<th>Speaker Company</th>";
 
-  if (availableColumns.includes('account')) {
-    headers.innerHTML += `<th>Matched Account</th><th>Account Similarity</th>`;
-  }
+      if (availableColumns.includes('account')) {
+        headers.innerHTML += "<th>Matched Account</th><th>Account Similarity</th>";
+      }
 
-  if (availableColumns.includes('contact')) {
-    headers.innerHTML += `<th>Matched Contact</th><th>Contact Similarity</th>`;
-  }
+      if (availableColumns.includes('contact')) {
+        headers.innerHTML += "<th>Matched Contact</th><th>Contact Similarity</th>";
+      }
 
-  if (availableColumns.includes('address')) {
-    headers.innerHTML += `<th>Matched Address</th><th>Address Similarity</th>`;
-  }
+      if (availableColumns.includes('address')) {
+        headers.innerHTML += "<th>Matched Address</th><th>Address Similarity</th>";
+      }
 
-  if (availableColumns.includes('linkedin')) {
-    headers.innerHTML += `<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>`;
-  }
+      if (availableColumns.includes('linkedin')) {
+        headers.innerHTML += "<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>";
+      }
 
-  headers.innerHTML += `<th>Actions</th>`;
-}
+      headers.innerHTML += "<th>Actions</th>";
+    }
 
-  function displayResults(results, availableColumns) {
+    function displayResults(results, availableColumns) {
   const resultsBody = document.getElementById("resultsBody");
   resultsBody.innerHTML = '';
 
@@ -224,28 +226,27 @@
       if (!item) return { nameCell: '<td></td>', similarityCell: '<td></td>' };
 
       let highlightClass = "";
+      let backgroundColor = "";
 
       if (item.similarity === 1) {
-        highlightClass = "manual-added"; // Green
+        highlightClass = "manual-added"; // Green // Light Green for 100%
+      } else if (item.similarity === 2) {
+        highlightClass = "highlight-200"; // Light Blue for 200%
       } else if (item.fromAliasMatch) {
         highlightClass = "highlight-100"; // Yellow
       }
 
       return {
         nameCell: `
-          <td style="vertical-align: top;">
+          <td style="vertical-align: top; background-color: ${backgroundColor};">
             <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
-              <input type="checkbox"
-                     class="match-checkbox"
-                     data-type="${type}"
-                     data-speaker="${speaker}"
-                     data-name="${item.name}">
+              <input type="checkbox" class="match-checkbox" data-type="${type}" data-speaker="${speaker}" data-name="${item.name}">
               ${item.name}
             </div>
           </td>
         `,
         similarityCell: `
-          <td style="vertical-align: top;">
+          <td style="vertical-align: top; background-color: ${backgroundColor};">
             <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
               ${(item.similarity * 100).toFixed(0)}%
             </div>
@@ -254,104 +255,58 @@
       };
     }
 
-
     if (availableColumns.includes('account')) {
-  const acc = result.matched_account?.[0];
-  const { nameCell, similarityCell } = generateCellContent(acc, 'account', result.speaker);
-  rowData += nameCell + similarityCell;
-}
+      const acc = result.matched_account?.[0];
+      const { nameCell, similarityCell } = generateCellContent(acc, 'account', result.speaker);
+      rowData += nameCell + similarityCell;
+    }
 
-if (availableColumns.includes('contact')) {
-  const con = result.matched_contact?.[0];
-  const { nameCell, similarityCell } = generateCellContent(con, 'contact', result.speaker);
-  rowData += nameCell + similarityCell;
-}
+    if (availableColumns.includes('contact')) {
+      const con = result.matched_contact?.[0];
+      const { nameCell, similarityCell } = generateCellContent(con, 'contact', result.speaker);
+      rowData += nameCell + similarityCell;
+    }
 
-if (availableColumns.includes('address')) {
-  const addr = result.matched_address?.[0];
-  const { nameCell, similarityCell } = generateCellContent(addr, 'address', result.speaker);
-  rowData += nameCell + similarityCell;
-}
+    if (availableColumns.includes('address')) {
+      const addr = result.matched_address?.[0];
+      const { nameCell, similarityCell } = generateCellContent(addr, 'address', result.speaker);
+      rowData += nameCell + similarityCell;
+    }
 
-if (availableColumns.includes('linkedin')) {
-  if (result.matched_linkedin && result.matched_linkedin.length > 0) {
-    let nameCell = '<td style="vertical-align: top;">';
-    let similarityCell = '<td style="vertical-align: top;">';
-    const seenNames = new Set();
+    if (availableColumns.includes('linkedin')) {
+      if (result.matched_linkedin && result.matched_linkedin.length > 0) {
+        let nameCell = '<td style="vertical-align: top;">';
+        let similarityCell = '<td style="vertical-align: top;">';
+        const seenNames = new Set();
 
-    result.matched_linkedin.forEach((item, index) => {
-      if (!seenNames.has(item.name)) {
-        seenNames.add(item.name);
+        result.matched_linkedin.forEach(item => {
+          if (seenNames.has(item.name)) return;
+          seenNames.add(item.name);
+          const { nameCell: newNameCell, similarityCell: newSimCell } = generateCellContent(item, 'linkedin', result.speaker);
+          nameCell += newNameCell;
+          similarityCell += newSimCell;
+        });
 
-        let highlightClass = "";
-        if (item.similarity === 1) {
-          highlightClass = "manual-added";
-        } else if (item.fromAliasMatch) {
-          highlightClass = "highlight-100";
-        }
-
-        nameCell += `
-          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
-            <input type="checkbox"
-                   class="match-checkbox"
-                   data-type="linkedin"
-                   data-speaker="${result.speaker}"
-                   data-name="${item.name}">
-            ${item.name}
-          </div>
-        `;
-
-        similarityCell += `
-          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
-            ${(item.similarity * 100).toFixed(0)}%
-          </div>
-        `;
+        rowData += nameCell + similarityCell;
       }
-    });
+    }
 
-    nameCell += '</td>';
-    similarityCell += '</td>';
-
-    rowData += nameCell + similarityCell;
-  } else {
-    rowData += '<td></td><td></td>';
-
-  }
-}
-
-    rowData += `<td>`;
-
-
-
+    // Add the actions column
     rowData += `
-      <button class="confirm-btn" onclick="confirmSelectedMatches('${result.speaker}')">Confirm</button>
-      <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
-    </td>`;
+      <td style="text-align: center;">
+        <button class="confirm-btn" onclick="confirmMatch('${result.speaker}')">Confirm</button>
+        <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
+      </td>
+    `;
 
     row.innerHTML = rowData;
     resultsBody.appendChild(row);
   });
 
-  document.getElementById("resultTable").style.display = 'table';
+  document.getElementById("resultTable").style.display = 'block';
 }
 
-
-
-    async function confirmMatch(result) {
-      const response = await fetch('/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([result])
-      });
-
-      if (response.ok) {
-        alert('Match confirmed!');
-      } else {
-        alert('Error confirming match');
-      }
-    }
-
-   async function confirmSelectedMatches(speaker) {
+async function confirmSelectedMatches(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
   const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
 
@@ -410,14 +365,10 @@ if (availableColumns.includes('linkedin')) {
         div.classList.add('highlight-100');
       }
     });
-
   } else {
     alert('Error confirming selected matches.');
   }
 }
-
-
-
 
 async function unconfirmMatch(speaker) {
   const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
@@ -468,28 +419,21 @@ async function unconfirmMatch(speaker) {
   });
 
   if (response.ok) {
-    alert('Selected matches unconfirmed!');
-
-    // ✅ After unconfirm, immediately remove yellow color
+    alert('Match unconfirmed!');
+    // ✅ After unconfirm, immediately update class back to default
     checkboxes.forEach(cb => {
       const div = cb.closest('div');
       if (div) {
         div.classList.remove('highlight-100');
-        div.classList.remove('manual-added');
       }
     });
-
   } else {
-    alert('Error unconfirming selected matches.');
+    alert('Error unconfirming match.');
   }
 }
 
 
-
-
-
-
-
   </script>
 </body>
+
 </html>

@@ -1,80 +1,14 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Blueprint, request, jsonify,render_template
+from src.backend.models.compare_model import categorize_token, weights,CompanyGroup
+from src.backend.simhash import calculate_weighted_simhash
+from fuzzywuzzy import fuzz
 import pandas as pd
-from simhash import calculate_weighted_simhash
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import ARRAY
-import os
-from dotenv import load_dotenv
+from src.backend.db import db
 
-# Load environment variables from a .env file
-load_dotenv()
 
-app = Flask(__name__, template_folder='templates')
+compare_bp = Blueprint('compare_bp', __name__, template_folder='templates')
 
-# Configure SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-
-# --- Updated Model ---
-class CompanyGroup(db.Model):
-    __tablename__ = 'company_groups'
-    id = db.Column(db.Integer, primary_key=True)
-    aliases = db.Column(ARRAY(db.Text), nullable=False)
-
-# Keywords for categorization
-COUNTRY_KEYWORDS = ["Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina",
-                    "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh",
-                    "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina",
-                    "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde",
-                    "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China",
-                    "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba",
-                    "Cyprus", "Czech Republic", "Democratic Republic of the Congo", "Denmark", "Djibouti",
-                    "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea",
-                    "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia",
-                    "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau",
-                    "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq",
-                    "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan",
-                    "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia",
-                    "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia",
-                    "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico",
-                    "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique",
-                    "Myanmar (Burma)", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua",
-                    "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau",
-                    "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland",
-                    "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia",
-                    "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia",
-                    "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia",
-                    "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka",
-                    "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania",
-                    "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey",
-                    "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom",
-                    "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City", "Venezuela", "Vietnam",
-                    "Yemen", "Zambia", "Zimbabwe"]
-
-GROUP_COMPANY_KEYWORDS = ["Group", "Inc", "Incorporated", "Corporation", "Corp", "Co", "Company", "Ltd", "Limited",
-                          "LLC", "LLP", "PLC", "Bank", "Holdings", "Holding", "Partners"]
-
-weights = {
-    'group': 0.3,
-    'country': 0.6,
-    'company': 1.0
-}
-
-def categorize_token(token):
-    token = token.lower()
-    if any(country.lower() in token for country in COUNTRY_KEYWORDS):
-        return 'country'
-    if any(group.lower() in token for group in GROUP_COMPANY_KEYWORDS):
-        return 'group'
-    return 'company'
-
-@app.route('/')
-def index():
-    return render_template('company_name.html')
-
-@app.route('/upload', methods=['POST'])
+@compare_bp.route('/upload', methods=['POST'])
 def upload_file():
     uploaded_files = {}
     speaker_file = request.files.get('speaker')
@@ -120,7 +54,6 @@ def upload_file():
             'matched_address': []
         }
 
-
         speaker_aliases = []
 
         # Find aliases for this speaker if it exists
@@ -135,22 +68,30 @@ def upload_file():
                 df = uploaded_files[key]
                 column = 'Account Name' if key in ['account', 'contact'] else 'Company'
 
-                # Step 1: Try matching uploaded file against database aliases (STRICT)
+                # Step 1: Exact match
                 for name in df[column]:
-                    if name.strip() in speaker_aliases:
-                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
-                                                                weights=weights)
+                    if speaker_name.strip().lower() == name.strip().lower():  # exact match (case insensitive)
                         matches.append({
                             'name': name,
-                            'similarity': round(similarity, 2),
-                            'fromAliasMatch': True
+                            'similarity': 2.0,
+                            'fromAliasMatch': False
                         })
 
-                # Step 2: If no alias match, fallback to normal similarity match
+                # Step 2: Alias match
                 if not matches:
                     for name in df[column]:
-                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_func=categorize_token,
-                                                                weights=weights)
+                        if name.strip() in speaker_aliases:
+                            similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
+                            matches.append({
+                                'name': name,
+                                'similarity': round(similarity, 2),
+                                'fromAliasMatch': True
+                            })
+
+                # Step 3: Normal similarity match
+                if not matches:
+                    for name in df[column]:
+                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
                         if similarity >= 0.7:
                             matches.append({
                                 'name': name,
@@ -187,7 +128,7 @@ def upload_file():
     return jsonify(results)
 
 
-@app.route('/confirm', methods=['POST'])
+@compare_bp.route('/confirm', methods=['POST'])
 def confirm_to_group():
     data = request.json
     print("DEBUG Incoming Payload:", data)  # 🔥 DEBUG PAYLOAD
@@ -201,16 +142,16 @@ def confirm_to_group():
     aliases_to_add = set([speaker])
 
     for field in fields:
-        print(f"DEBUG Checking field: {field}")  # 🔥
+        print(f"DEBUG Checking field: {field}") 
         matched = data.get(f'matched_{field}')
-        print(f"DEBUG Matched Value for {field}:", matched)  # 🔥
+        print(f"DEBUG Matched Value for {field}:", matched)  
 
         if isinstance(matched, list):
             aliases_to_add.update(matched)
         elif isinstance(matched, str):
             aliases_to_add.add(matched)
 
-    print("DEBUG Final Aliases to Add:", aliases_to_add)  # 🔥
+    print("DEBUG Final Aliases to Add:", aliases_to_add)  
 
     groups = CompanyGroup.query.all()
     target_group = None
@@ -232,7 +173,7 @@ def confirm_to_group():
     return jsonify({"message": "Speaker and matched names added into one group"}), 200
 
 
-@app.route('/unconfirm', methods=['POST'])
+@compare_bp.route('/unconfirm', methods=['POST'])
 def unconfirm_from_group():
     data = request.json
     speaker = data.get('speaker')
@@ -274,10 +215,3 @@ def unconfirm_from_group():
         target_group.aliases = updated_aliases
         db.session.commit()
         return jsonify({"message": "Selected aliases unconfirmed, speaker preserved"}), 200
-
-
-
-
-
-if __name__ == '__main__':
-    app.run(debug=True)

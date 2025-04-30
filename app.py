@@ -22,7 +22,7 @@ def create_app():
 
     @app.route('/compare')
     def compare():
-        return render_template('compare_name/compare_name.html')
+        return render_template('compare_name.html')
 
     return app
 

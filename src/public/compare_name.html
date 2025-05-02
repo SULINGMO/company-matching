@@ -356,6 +356,11 @@ function confirmAllMatches() {
           div.classList.remove('manual-added');
           div.classList.add('highlight-100');
         }
+        const similarityDiv = div.parentElement.nextElementSibling?.querySelector('div');
+          if (similarityDiv) {
+            similarityDiv.classList.remove('manual-added');
+            similarityDiv.classList.add('highlight-100');
+          }
       } else {
         alert(`Error confirming match for ${speaker} (${type}: ${name}).`);
       }
@@ -394,6 +399,10 @@ function unconfirmAllMatches() {
         const div = cb.closest('div');
         if (div) {
           div.classList.remove('highlight-100');
+        }
+        const similarityDiv = div.parentElement.nextElementSibling?.querySelector('div');
+        if (similarityDiv) {
+          similarityDiv.classList.remove('highlight-100');
         }
       } else {
         alert(`Error unconfirming match for ${speaker} (${type}: ${name}).`);

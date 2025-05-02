@@ -1,245 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Company Name Matching</title>
-  <style>
-    :root {
-      --aibp-red: #a51916;
-      --aibp-cream: #fdfaf6;
-      --aibp-dark: #2c2c2c;
-      --aibp-light-gray: #f5f5f5;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--aibp-cream);
-      color: var(--aibp-dark);
-      margin: 20px;
-    }
-
-    h2 {
-      color: var(--aibp-red);
-    }
-
-    form {
-      background-color: white;
-      border: 1px solid #ddd;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 600px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-
-    .manual-added {
-      background-color: #eaf4ea !important;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 10px;
-    }
-
-    input[type="file"] {
-      margin-top: 5px;
-      padding: 6px;
-    }
-
-    button[type="submit"] {
-      background-color: var(--aibp-red);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button[type="submit"]:hover {
-      background-color: #831414;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-      background-color: white;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-    }
-
-    th,
-    td {
-      padding: 12px;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-
-    th {
-      background-color: var(--aibp-red);
-      color: white;
-    }
-
-    tr:nth-child(even) {
-      background-color: var(--aibp-light-gray);
-    }
-
-    .confirmed-row {
-      background-color: #eaf4ea !important;
-    }
-
-    .highlight-100 {
-      background-color: #fffbe6 !important;
-    }
-    .highlight-200 {
-      background-color: #b5c9e3 !important;
-    }
-    .confirm-btn,
-    .unconfirm-btn {
-      margin-top: 6px;
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-
-    .confirm-btn {
-      background-color: var(--aibp-red);
-      color: white;
-    }
-
-    .confirm-btn:hover {
-      background-color: #831414;
-    }
-
-    .unconfirm-btn {
-      background-color: #666;
-      color: white;
-    }
-
-    .unconfirm-btn:hover {
-      background-color: #444;
-    }
-
-    input[type="checkbox"] {
-      margin-right: 6px;
-    }
-
-    input[type="checkbox"]:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    button:disabled {
-      background-color: #ccc !important;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
-
-<body>
-  <h2>Upload Company Lists</h2>
-  <form id="uploadForm" enctype="multipart/form-data">
-    <label>Speaker List: <input type="file" name="speaker" required></label>
-    <label>Account List: <input type="file" name="account"></label>
-    <label>Contact List: <input type="file" name="contact"></label>
-    <label>Address List: <input type="file" name="address"></label>
-    <label>LinkedIn List: <input type="file" name="linkedin"></label>
-    <button type="submit">Upload</button>
-  </form>
-
-  <table id="resultTable" style="display: none;">
-    <thead>
-      <tr id="resultTableHeaders"></tr>
-    </thead>
-    <tbody id="resultsBody"></tbody>
-  </table>
-  <div id="actionButtons">
-    <button id="confirmAllBtn" onclick="confirmAllMatches()">Confirm All</button>
-    <button id="unconfirmAllBtn" onclick="unconfirmAllMatches()">Unconfirm All</button>
-  </div>
-  <script>
-    document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-      event.preventDefault();
-      const formData = new FormData(this);
-
-      const form = this;
-      const availableColumns = [];
-
-      if (form.speaker.files.length > 0) availableColumns.push('speaker');
-      if (form.account.files.length > 0) availableColumns.push('account');
-      if (form.contact.files.length > 0) availableColumns.push('contact');
-      if (form.address.files.length > 0) availableColumns.push('address');
-      if (form.linkedin.files.length > 0) availableColumns.push('linkedin');
-
-      console.log('Available columns:', availableColumns);
-
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        const results = await response.json();
-        updateTableHeaders(availableColumns);
-        displayResults(results, availableColumns);
-      } else {
-        alert('Error uploading files');
-      }
-    });
-
-    function updateTableHeaders(availableColumns) {
-      const headers = document.querySelector("#resultTable thead tr");
-      headers.innerHTML = ""; // Clear old headers
-
-      headers.innerHTML += "<th>Speaker Company</th>";
-
-      if (availableColumns.includes('account')) {
-        headers.innerHTML += "<th>Matched Account</th><th>Account Similarity</th>";
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Company Name Matching</title>
+    <style>
+      :root {
+        --aibp-red: #a51916;
+        --aibp-cream: #fdfaf6;
+        --aibp-dark: #2c2c2c;
+        --aibp-light-gray: #f5f5f5;
       }
 
-      if (availableColumns.includes('contact')) {
-        headers.innerHTML += "<th>Matched Contact</th><th>Contact Similarity</th>";
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--aibp-cream);
+        color: var(--aibp-dark);
+        margin: 20px;
       }
 
-      if (availableColumns.includes('address')) {
-        headers.innerHTML += "<th>Matched Address</th><th>Address Similarity</th>";
+      h2 {
+        color: var(--aibp-red);
       }
 
-      if (availableColumns.includes('linkedin')) {
-        headers.innerHTML += "<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>";
+      form {
+        background-color: white;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 600px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
       }
 
-    }
-
-    function displayResults(results, availableColumns) {
-  const resultsBody = document.getElementById("resultsBody");
-  resultsBody.innerHTML = '';
-
-  results.forEach(result => {
-    const row = document.createElement("tr");
-    let rowData = `<td>${result.speaker || 'None'}</td>`;
-
-    function generateCellContent(item, type, speaker) {
-      if (!item) return { nameCell: '<td></td>', similarityCell: '<td></td>' };
-
-      let highlightClass = "";
-      let backgroundColor = "";
-
-      if (item.similarity === 1) {
-        highlightClass = "manual-added"; // Green // Light Green for 100%
-      } else if (item.similarity === 2) {
-        highlightClass = "highlight-200"; // Light Blue for 200%
-      } else if (item.fromAliasMatch) {
-        highlightClass = "highlight-100"; // Yellow
+      .manual-added {
+        background-color: #eaf4ea !important;
       }
 
-      return {
-        nameCell: `
+      label {
+        display: block;
+        margin-bottom: 10px;
+      }
+
+      input[type="file"] {
+        margin-top: 5px;
+        padding: 6px;
+      }
+
+      button[type="submit"] {
+        background-color: var(--aibp-red);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      button[type="submit"]:hover {
+        background-color: #831414;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 30px;
+        background-color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
+
+      th {
+        background-color: var(--aibp-red);
+        color: white;
+      }
+
+      tr:nth-child(even) {
+        background-color: var(--aibp-light-gray);
+      }
+
+      .confirmed-row {
+        background-color: #eaf4ea !important;
+      }
+
+      .highlight-100 {
+        background-color: #fffbe6 !important;
+      }
+      .highlight-200 {
+        background-color: #b5c9e3 !important;
+      }
+      .confirm-btn,
+      .unconfirm-btn {
+        margin-top: 6px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9em;
+      }
+
+      .confirm-btn {
+        background-color: var(--aibp-red);
+        color: white;
+      }
+
+      .confirm-btn:hover {
+        background-color: #831414;
+      }
+
+      .unconfirm-btn {
+        background-color: #666;
+        color: white;
+      }
+
+      .unconfirm-btn:hover {
+        background-color: #444;
+      }
+
+      input[type="checkbox"] {
+        margin-right: 6px;
+      }
+
+      input[type="checkbox"]:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      button:disabled {
+        background-color: #ccc !important;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Upload Company Lists</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <label>Speaker List: <input type="file" name="speaker" required /></label>
+      <label>Account List: <input type="file" name="account" /></label>
+      <label>Contact List: <input type="file" name="contact" /></label>
+      <label>Address List: <input type="file" name="address" /></label>
+      <label>LinkedIn List: <input type="file" name="linkedin" /></label>
+      <button type="submit">Upload</button>
+    </form>
+
+    <table id="resultTable" style="display: none">
+      <thead>
+        <tr id="resultTableHeaders"></tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+    <div id="actionButtons">
+      <button id="confirmAllBtn" onclick="confirmAllMatches()">
+        Confirm All
+      </button>
+      <button id="unconfirmAllBtn" onclick="unconfirmAllMatches()">
+        Unconfirm All
+      </button>
+    </div>
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const formData = new FormData(this);
+
+          const form = this;
+          const availableColumns = [];
+
+          if (form.speaker.files.length > 0) availableColumns.push("speaker");
+          if (form.account.files.length > 0) availableColumns.push("account");
+          if (form.contact.files.length > 0) availableColumns.push("contact");
+          if (form.address.files.length > 0) availableColumns.push("address");
+          if (form.linkedin.files.length > 0) availableColumns.push("linkedin");
+
+          console.log("Available columns:", availableColumns);
+
+          const response = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const results = await response.json();
+            updateTableHeaders(availableColumns);
+            displayResults(results, availableColumns);
+          } else {
+            alert("Error uploading files");
+          }
+        });
+
+      function updateTableHeaders(availableColumns) {
+        const headers = document.querySelector("#resultTable thead tr");
+        headers.innerHTML = ""; // Clear old headers
+
+        headers.innerHTML += "<th>Speaker Company</th>";
+
+        if (availableColumns.includes("account")) {
+          headers.innerHTML +=
+            "<th>Matched Account</th><th>Account Similarity</th>";
+        }
+
+        if (availableColumns.includes("contact")) {
+          headers.innerHTML +=
+            "<th>Matched Contact</th><th>Contact Similarity</th>";
+        }
+
+        if (availableColumns.includes("address")) {
+          headers.innerHTML +=
+            "<th>Matched Address</th><th>Address Similarity</th>";
+        }
+
+        if (availableColumns.includes("linkedin")) {
+          headers.innerHTML +=
+            "<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>";
+        }
+      }
+
+      function displayResults(results, availableColumns) {
+        const resultsBody = document.getElementById("resultsBody");
+        resultsBody.innerHTML = "";
+
+        results.forEach((result) => {
+          const row = document.createElement("tr");
+          let rowData = `<td>${result.speaker || "None"}</td>`;
+
+          function generateCellContent(item, type, speaker) {
+            if (!item)
+              return { nameCell: "<td></td>", similarityCell: "<td></td>" };
+
+            let highlightClass = "";
+            let backgroundColor = "";
+
+            if (item.similarity === 1) {
+              highlightClass = "manual-added"; // Green // Light Green for 100%
+            } else if (item.similarity === 2) {
+              highlightClass = "highlight-200"; // Light Blue for 200%
+            } else if (item.fromAliasMatch) {
+              highlightClass = "highlight-100"; // Yellow
+            }
+
+            return {
+              nameCell: `
           <td style="vertical-align: top; background-color: ${backgroundColor};">
             <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
               <input type="checkbox" class="match-checkbox" data-type="${type}" data-speaker="${speaker}" data-name="${item.name}">
@@ -247,54 +256,71 @@
             </div>
           </td>
         `,
-        similarityCell: `
+              similarityCell: `
           <td style="vertical-align: top; background-color: ${backgroundColor};">
-            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
-              ${(item.similarity * 100).toFixed(0)}%
-            </div>
+          <div class="${highlightClass}" 
+     data-speaker="${result.speaker}" 
+     data-type="linkedin" 
+     data-name="${item.name}"
+     style="...">
+  ${(item.similarity * 100).toFixed(0)}%
+</div>
+
           </td>
-        `
-      };
-    }
+        `,
+            };
+          }
 
-    if (availableColumns.includes('account')) {
-      const acc = result.matched_account?.[0];
-      const { nameCell, similarityCell } = generateCellContent(acc, 'account', result.speaker);
-      rowData += nameCell + similarityCell;
-    }
+          if (availableColumns.includes("account")) {
+            const acc = result.matched_account?.[0];
+            const { nameCell, similarityCell } = generateCellContent(
+              acc,
+              "account",
+              result.speaker
+            );
+            rowData += nameCell + similarityCell;
+          }
 
-    if (availableColumns.includes('contact')) {
-      const con = result.matched_contact?.[0];
-      const { nameCell, similarityCell } = generateCellContent(con, 'contact', result.speaker);
-      rowData += nameCell + similarityCell;
-    }
+          if (availableColumns.includes("contact")) {
+            const con = result.matched_contact?.[0];
+            const { nameCell, similarityCell } = generateCellContent(
+              con,
+              "contact",
+              result.speaker
+            );
+            rowData += nameCell + similarityCell;
+          }
 
-    if (availableColumns.includes('address')) {
-      const addr = result.matched_address?.[0];
-      const { nameCell, similarityCell } = generateCellContent(addr, 'address', result.speaker);
-      rowData += nameCell + similarityCell;
-    }
+          if (availableColumns.includes("address")) {
+            const addr = result.matched_address?.[0];
+            const { nameCell, similarityCell } = generateCellContent(
+              addr,
+              "address",
+              result.speaker
+            );
+            rowData += nameCell + similarityCell;
+          }
 
-    if (availableColumns.includes('linkedin')) {
-      const matches = result.matched_linkedin || [];
-      let nameCell = '<td style="vertical-align: top;">';
-      let similarityCell = '<td style="vertical-align: top;">';
+          if (availableColumns.includes("linkedin")) {
+            const matches = result.matched_linkedin || [];
+            let nameCell = '<td style="vertical-align: top;">';
+            let similarityCell = '<td style="vertical-align: top;">';
 
-      const seenNames = new Set();
-      matches.forEach(item => {
-        if (seenNames.has(item.name)) return;
-        seenNames.add(item.name);
+            const seenNames = new Set();
+            matches.forEach((item) => {
+              if (seenNames.has(item.name)) return;
+              seenNames.add(item.name);
 
-        let highlightClass = "";
-        if (item.similarity === 1) {
-          highlightClass = "manual-added";
-        } else if (item.similarity === 2) {
-          highlightClass = "highlight-200";
-        } else if (item.fromAliasMatch) {
-          highlightClass = "highlight-100";
-        }
+              let highlightClass = "";
+              if (item.similarity === 1) {
+                highlightClass = "manual-added";
+              } else if (item.similarity === 2) {
+                highlightClass = "highlight-200";
+              } else if (item.fromAliasMatch) {
+                highlightClass = "highlight-100";
+              }
 
-        nameCell += `
+              nameCell += `
           <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
             <input type="checkbox"
                    class="match-checkbox"
@@ -304,118 +330,157 @@
             ${item.name}
           </div>
         `;
+              similarityCell += `
+  <div class="${highlightClass}"
+       data-speaker="${result.speaker}"
+       data-type="linkedin"
+       data-name="${item.name}"
+       style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+    ${(item.similarity * 100).toFixed(0)}%
+  </div>
+`;
+            });
 
-        similarityCell += `
-          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
-            ${(item.similarity * 100).toFixed(0)}%
-          </div>
-        `;
-      });
+            nameCell += "</td>";
+            similarityCell += "</td>";
 
-      nameCell += '</td>';
-      similarityCell += '</td>';
-
-      rowData += nameCell + similarityCell;
-    }
-
-
-    row.innerHTML = rowData;
-    resultsBody.appendChild(row);
-  });
-
-  document.getElementById("resultTable").style.display = 'block';
-}
-
-function confirmAllMatches() {
-  const checkboxes = document.querySelectorAll('.match-checkbox:checked');
-
-  checkboxes.forEach(cb => {
-    const speaker = cb.getAttribute('data-speaker');
-    const type = cb.getAttribute('data-type');
-    const name = cb.getAttribute('data-name');
-
-    const payload = {
-      speaker: speaker,
-      fields: [type],
-      [`matched_${type}`]: [name]
-    };
-
-    console.log("DEBUG Payload being sent for confirmation:", payload);
-
-    fetch('/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(response => {
-      if (response.ok) {
-        alert(`Match confirmed for ${speaker} (${type}: ${name})!`);
-        // ✅ After confirm, immediately update class to yellow
-        const div = cb.closest('div');
-        if (div) {
-          div.classList.remove('manual-added');
-          div.classList.add('highlight-100');
-        }
-        const similarityDiv = div.parentElement.nextElementSibling?.querySelector('div');
-          if (similarityDiv) {
-            similarityDiv.classList.remove('manual-added');
-            similarityDiv.classList.add('highlight-100');
+            rowData += nameCell + similarityCell;
           }
-      } else {
-        alert(`Error confirming match for ${speaker} (${type}: ${name}).`);
+
+          row.innerHTML = rowData;
+          resultsBody.appendChild(row);
+        });
+
+        document.getElementById("resultTable").style.display = "block";
       }
-    })
-    .catch(error => {
-      console.error('Error confirming match:', error);
-      alert('Error confirming match. Please try again.');
-    });
-  });
-}
-function unconfirmAllMatches() {
-  const checkboxes = document.querySelectorAll('.match-checkbox:checked');
 
-  checkboxes.forEach(cb => {
-    const speaker = cb.getAttribute('data-speaker');
-    const type = cb.getAttribute('data-type');
-    const name = cb.getAttribute('data-name');
+      function confirmAllMatches() {
+        const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+        const requests = [];
 
-    const payload = {
-      speaker: speaker,
-      fields: [type],
-      [`matched_${type}`]: [name]
-    };
-
-    console.log("DEBUG Payload being sent for unconfirmation:", payload);
-
-    fetch('/unconfirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(response => {
-      if (response.ok) {
-        alert(`Match unconfirmed for ${speaker} (${type}: ${name})!`);
-        // ✅ After unconfirm, immediately update class back to default
-        const div = cb.closest('div');
-        if (div) {
-          div.classList.remove('highlight-100');
+        if (checkboxes.length === 0) {
+          alert("Please select at least one match to confirm.");
+          return;
         }
-        const similarityDiv = div.parentElement.nextElementSibling?.querySelector('div');
-        if (similarityDiv) {
-          similarityDiv.classList.remove('highlight-100');
-        }
-      } else {
-        alert(`Error unconfirming match for ${speaker} (${type}: ${name}).`);
+
+        checkboxes.forEach((cb) => {
+          const speaker = cb.getAttribute("data-speaker");
+          const type = cb.getAttribute("data-type");
+          const name = cb.getAttribute("data-name");
+
+          const payload = {
+            speaker: speaker,
+            fields: [type],
+            [`matched_${type}`]: [name],
+          };
+
+          const request = fetch("/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }).then((response) => {
+            if (response.ok) {
+              const div = cb.closest("div");
+              if (div) {
+                div.classList.remove("manual-added");
+                div.classList.add("highlight-100");
+              }
+              const similarityDiv = document.querySelector(
+                `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
+              );
+              if (similarityDiv) {
+                similarityDiv.classList.remove("manual-added");
+                similarityDiv.classList.add("highlight-100");
+              }
+
+              if (similarityDiv) {
+                similarityDiv.classList.remove("manual-added");
+                similarityDiv.classList.add("highlight-100");
+              }
+            }
+          });
+
+          requests.push(request);
+        });
+
+        Promise.all(requests)
+          .then(() => {
+            alert("Selected matches confirmed!");
+            // ✅ Uncheck everything only once after all complete
+            checkboxes.forEach((cb) => (cb.checked = false));
+          })
+          .catch(() => alert("One or more confirmations failed."));
       }
-    })
-    .catch(error => {
-      console.error('Error unconfirming match:', error);
-      alert('Error unconfirming match. Please try again.');
-    });
-  });
-}
 
-  </script>
-</body>
+      function unconfirmAllMatches() {
+        const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+        const groupedPayloads = {}; // { speaker: { fields: [], matched_account: [], ... } }
 
+        if (checkboxes.length === 0) {
+          alert("Please select at least one match to unconfirm.");
+          return;
+        }
+
+        // Group checkboxes by speaker and type
+        checkboxes.forEach((cb) => {
+          const speaker = cb.getAttribute("data-speaker");
+          const type = cb.getAttribute("data-type");
+          const name = cb.getAttribute("data-name");
+
+          if (!groupedPayloads[speaker]) {
+            groupedPayloads[speaker] = {
+              speaker: speaker,
+              fields: [],
+            };
+          }
+
+          const payload = groupedPayloads[speaker];
+
+          if (!payload.fields.includes(type)) {
+            payload.fields.push(type);
+            payload[`matched_${type}`] = [];
+          }
+
+          payload[`matched_${type}`].push(name);
+        });
+
+        const requests = Object.values(groupedPayloads).map((payload) => {
+          console.log("DEBUG Payload for unconfirm:", payload);
+
+          return fetch("/unconfirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }).then((response) => {
+            if (response.ok) {
+              // ✅ Clear visual highlights and uncheck boxes for this speaker
+              const checkboxesToClear = document.querySelectorAll(
+                `.match-checkbox[data-speaker="${payload.speaker}"]:checked`
+              );
+              checkboxesToClear.forEach((cb) => {
+                const div = cb.closest("div");
+                if (div) div.classList.remove("highlight-100");
+                const speaker = cb.getAttribute("data-speaker");
+                const type = cb.getAttribute("data-type");
+                const name = cb.getAttribute("data-name");
+
+                const similarityDiv = document.querySelector(
+                  `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
+                );
+                if (similarityDiv) {
+                  similarityDiv.classList.remove("highlight-100");
+                }
+
+                cb.checked = false;
+              });
+            }
+          });
+        });
+
+        Promise.all(requests)
+          .then(() => alert("Selected matches unconfirmed!"))
+          .catch(() => alert("One or more unconfirmations failed."));
+      }
+    </script>
+  </body>
 </html>

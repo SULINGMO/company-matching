@@ -4,7 +4,7 @@ from src.backend.simhash import calculate_weighted_simhash
 from fuzzywuzzy import fuzz
 import pandas as pd
 from src.backend.db import db
-
+import json
 
 compare_bp = Blueprint('compare_bp', __name__, template_folder='templates')
 
@@ -131,46 +131,49 @@ def upload_file():
 @compare_bp.route('/confirm', methods=['POST'])
 def confirm_to_group():
     data = request.json
-    print("DEBUG Incoming Payload:", data)  # 🔥 DEBUG PAYLOAD
-
     speaker = data.get('speaker')
     fields = data.get('fields', [])
 
     if not speaker or not fields:
         return jsonify({"error": "Missing speaker or fields"}), 400
 
+    # Build set of all aliases to add
     aliases_to_add = set([speaker])
-
     for field in fields:
-        print(f"DEBUG Checking field: {field}") 
         matched = data.get(f'matched_{field}')
-        print(f"DEBUG Matched Value for {field}:", matched)  
-
         if isinstance(matched, list):
             aliases_to_add.update(matched)
         elif isinstance(matched, str):
             aliases_to_add.add(matched)
 
-    print("DEBUG Final Aliases to Add:", aliases_to_add)  
+    print("✅ Aliases to add:", aliases_to_add)
 
-    groups = CompanyGroup.query.all()
-    target_group = None
+    # Load all groups and find matches
+    all_groups = CompanyGroup.query.all()
+    matched_groups = [group for group in all_groups if any(alias in group.aliases for alias in aliases_to_add)]
 
-    for group in groups:
-        if any(alias in group.aliases for alias in aliases_to_add):
-            target_group = group
-            break
-
-    if target_group:
-        new_aliases = list(set(target_group.aliases + list(aliases_to_add)))
-        target_group.aliases = new_aliases
-        db.session.commit()
-    else:
+    if not matched_groups:
+        # No existing group → create new
         new_group = CompanyGroup(aliases=list(aliases_to_add))
         db.session.add(new_group)
         db.session.commit()
+        return jsonify({"message": "New group created"}), 200
 
-    return jsonify({"message": "Speaker and matched names added into one group"}), 200
+    # Merge all aliases and matched groups into one
+    combined_aliases = set(aliases_to_add)
+    for group in matched_groups:
+        combined_aliases.update(group.aliases)
+
+    # Keep one group and delete the rest
+    primary_group = matched_groups[0]
+    primary_group.aliases = list(combined_aliases)
+
+    for group in matched_groups[1:]:
+        db.session.delete(group)
+
+    db.session.commit()
+    return jsonify({"message": "Aliases merged into one group"}), 200
+
 
 
 @compare_bp.route('/unconfirm', methods=['POST'])

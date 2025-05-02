@@ -158,7 +158,10 @@
     </thead>
     <tbody id="resultsBody"></tbody>
   </table>
-
+  <div id="actionButtons">
+    <button id="confirmAllBtn" onclick="confirmAllMatches()">Confirm All</button>
+    <button id="unconfirmAllBtn" onclick="unconfirmAllMatches()">Unconfirm All</button>
+  </div>
   <script>
     document.getElementById("uploadForm").addEventListener("submit", async function (event) {
       event.preventDefault();
@@ -211,7 +214,6 @@
         headers.innerHTML += "<th>Matched LinkedIn</th><th>LinkedIn Similarity</th>";
       }
 
-      headers.innerHTML += "<th>Actions</th>";
     }
 
     function displayResults(results, availableColumns) {
@@ -274,56 +276,48 @@
     }
 
     if (availableColumns.includes('linkedin')) {
-  const matches = result.matched_linkedin || [];
-  let nameCell = '<td style="vertical-align: top;">';
-  let similarityCell = '<td style="vertical-align: top;">';
+      const matches = result.matched_linkedin || [];
+      let nameCell = '<td style="vertical-align: top;">';
+      let similarityCell = '<td style="vertical-align: top;">';
 
-  const seenNames = new Set();
-  matches.forEach(item => {
-    if (seenNames.has(item.name)) return;
-    seenNames.add(item.name);
+      const seenNames = new Set();
+      matches.forEach(item => {
+        if (seenNames.has(item.name)) return;
+        seenNames.add(item.name);
 
-    let highlightClass = "";
-    if (item.similarity === 1) {
-      highlightClass = "manual-added";
-    } else if (item.similarity === 2) {
-      highlightClass = "highlight-200";
-    } else if (item.fromAliasMatch) {
-      highlightClass = "highlight-100";
+        let highlightClass = "";
+        if (item.similarity === 1) {
+          highlightClass = "manual-added";
+        } else if (item.similarity === 2) {
+          highlightClass = "highlight-200";
+        } else if (item.fromAliasMatch) {
+          highlightClass = "highlight-100";
+        }
+
+        nameCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox"
+                   class="match-checkbox"
+                   data-type="linkedin"
+                   data-speaker="${result.speaker}"
+                   data-name="${item.name}">
+            ${item.name}
+          </div>
+        `;
+
+        similarityCell += `
+          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+            ${(item.similarity * 100).toFixed(0)}%
+          </div>
+        `;
+      });
+
+      nameCell += '</td>';
+      similarityCell += '</td>';
+
+      rowData += nameCell + similarityCell;
     }
 
-    nameCell += `
-      <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
-        <input type="checkbox"
-               class="match-checkbox"
-               data-type="linkedin"
-               data-speaker="${result.speaker}"
-               data-name="${item.name}">
-        ${item.name}
-      </div>
-    `;
-
-    similarityCell += `
-      <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
-        ${(item.similarity * 100).toFixed(0)}%
-      </div>
-    `;
-  });
-
-  nameCell += '</td>';
-  similarityCell += '</td>';
-
-  rowData += nameCell + similarityCell;
-}
-
-
-    // Add the actions column
-    rowData += `
-      <td style="text-align: center;">
-        <button class="confirm-btn" onclick="confirmMatch('${result.speaker}')">Confirm</button>
-        <button class="unconfirm-btn" onclick="unconfirmMatch('${result.speaker}')">Unconfirm</button>
-      </td>
-    `;
 
     row.innerHTML = rowData;
     resultsBody.appendChild(row);
@@ -332,132 +326,85 @@
   document.getElementById("resultTable").style.display = 'block';
 }
 
-async function confirmMatch(speaker) {
-  const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
-  const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
+function confirmAllMatches() {
+  const checkboxes = document.querySelectorAll('.match-checkbox:checked');
 
-  if (selectedTypes.length === 0) {
-    alert('Please select at least one match to confirm.');
-    return;
-  }
+  checkboxes.forEach(cb => {
+    const speaker = cb.getAttribute('data-speaker');
+    const type = cb.getAttribute('data-type');
+    const name = cb.getAttribute('data-name');
 
-  const row = Array.from(document.querySelectorAll("#resultsBody tr")).find(r =>
-    r.firstChild?.textContent?.trim() === speaker
-  );
+    const payload = {
+      speaker: speaker,
+      fields: [type],
+      [`matched_${type}`]: [name]
+    };
 
-  const typeToIndexOffset = {
-    'account': 1,
-    'contact': 3,
-    'address': 5,
-    'linkedin': 7
-  };
+    console.log("DEBUG Payload being sent for confirmation:", payload);
 
-  const payload = {
-    speaker: speaker,
-    fields: selectedTypes
-  };
-
-  selectedTypes.forEach(type => {
-    if (type === 'linkedin') {
-      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
-      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
-    } else {
-      const colIndex = typeToIndexOffset[type];
-      if (colIndex !== undefined && row?.children[colIndex]) {
-        const matchedName = row.children[colIndex].textContent?.trim();
-        if (matchedName && matchedName !== '') {
-          payload[`matched_${type}`] = matchedName;
+    fetch('/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(response => {
+      if (response.ok) {
+        alert(`Match confirmed for ${speaker} (${type}: ${name})!`);
+        // ✅ After confirm, immediately update class to yellow
+        const div = cb.closest('div');
+        if (div) {
+          div.classList.remove('manual-added');
+          div.classList.add('highlight-100');
         }
+      } else {
+        alert(`Error confirming match for ${speaker} (${type}: ${name}).`);
       }
-    }
-  });
-
-  console.log("DEBUG Payload being sent:", payload);
-
-  const response = await fetch('/confirm', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (response.ok) {
-    alert('Selected matches confirmed!');
-
-    // ✅ After confirm, immediately update class to yellow
-    checkboxes.forEach(cb => {
-      const div = cb.closest('div');
-      if (div) {
-        div.classList.remove('manual-added');
-        div.classList.add('highlight-100');
-      }
+    })
+    .catch(error => {
+      console.error('Error confirming match:', error);
+      alert('Error confirming match. Please try again.');
     });
-  } else {
-    alert('Error confirming selected matches.');
-  }
+  });
 }
+function unconfirmAllMatches() {
+  const checkboxes = document.querySelectorAll('.match-checkbox:checked');
 
-async function unconfirmMatch(speaker) {
-  const checkboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"]:checked`);
-  const selectedTypes = Array.from(checkboxes).map(cb => cb.getAttribute('data-type'));
+  checkboxes.forEach(cb => {
+    const speaker = cb.getAttribute('data-speaker');
+    const type = cb.getAttribute('data-type');
+    const name = cb.getAttribute('data-name');
 
-  if (selectedTypes.length === 0) {
-    alert('Please select at least one match to unconfirm.');
-    return;
-  }
+    const payload = {
+      speaker: speaker,
+      fields: [type],
+      [`matched_${type}`]: [name]
+    };
 
-  const row = Array.from(document.querySelectorAll("#resultsBody tr")).find(r =>
-    r.firstChild?.textContent?.trim() === speaker
-  );
+    console.log("DEBUG Payload being sent for unconfirmation:", payload);
 
-  const typeToIndexOffset = {
-    'account': 1,
-    'contact': 3,
-    'address': 5,
-    'linkedin': 7
-  };
-
-  const payload = {
-    speaker: speaker,
-    fields: selectedTypes
-  };
-
-  selectedTypes.forEach(type => {
-    if (type === 'linkedin') {
-      const linkedinCheckboxes = document.querySelectorAll(`.match-checkbox[data-speaker="${speaker}"][data-type="linkedin"]:checked`);
-      payload[`matched_linkedin`] = Array.from(linkedinCheckboxes).map(cb => cb.getAttribute('data-name'));
-    } else {
-      const colIndex = typeToIndexOffset[type];
-      if (colIndex !== undefined && row?.children[colIndex]) {
-        const matchedName = row.children[colIndex].textContent?.trim();
-        if (matchedName && matchedName !== '') {
-          payload[`matched_${type}`] = matchedName;
+    fetch('/unconfirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(response => {
+      if (response.ok) {
+        alert(`Match unconfirmed for ${speaker} (${type}: ${name})!`);
+        // ✅ After unconfirm, immediately update class back to default
+        const div = cb.closest('div');
+        if (div) {
+          div.classList.remove('highlight-100');
         }
+      } else {
+        alert(`Error unconfirming match for ${speaker} (${type}: ${name}).`);
       }
-    }
-  });
-
-  console.log("DEBUG Payload being sent for unconfirm:", payload);
-
-  const response = await fetch('/unconfirm', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  if (response.ok) {
-    alert('Match unconfirmed!');
-    // ✅ After unconfirm, immediately update class back to default
-    checkboxes.forEach(cb => {
-      const div = cb.closest('div');
-      if (div) {
-        div.classList.remove('highlight-100');
-      }
+    })
+    .catch(error => {
+      console.error('Error unconfirming match:', error);
+      alert('Error unconfirming match. Please try again.');
     });
-  } else {
-    alert('Error unconfirming match.');
-  }
+  });
 }
-
 
   </script>
 </body>

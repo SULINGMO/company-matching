@@ -12,6 +12,7 @@
         --aibp-light-gray: #f5f5f5;
       }
 
+      /* Base layout */
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background-color: var(--aibp-cream);
@@ -19,10 +20,12 @@
         margin: 20px;
       }
 
+      /* Headings */
       h2 {
         color: var(--aibp-red);
       }
 
+      /* Upload form */
       form {
         background-color: white;
         border: 1px solid #ddd;
@@ -30,10 +33,6 @@
         border-radius: 10px;
         max-width: 600px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      }
-
-      .manual-added {
-        background-color: #eaf4ea !important;
       }
 
       label {
@@ -46,7 +45,10 @@
         padding: 6px;
       }
 
-      button[type="submit"] {
+      /* Buttons */
+      button[type="submit"],
+      .confirm-btn,
+      .unconfirm-btn {
         background-color: var(--aibp-red);
         color: white;
         border: none;
@@ -56,10 +58,25 @@
         cursor: pointer;
       }
 
-      button[type="submit"]:hover {
+      button[type="submit"]:hover,
+      .confirm-btn:hover {
         background-color: #831414;
       }
 
+      .unconfirm-btn {
+        background-color: #666;
+      }
+
+      .unconfirm-btn:hover {
+        background-color: #444;
+      }
+
+      button:disabled {
+        background-color: #ccc !important;
+        cursor: not-allowed;
+      }
+
+      /* Table */
       table {
         width: 100%;
         border-collapse: collapse;
@@ -86,6 +103,11 @@
         background-color: var(--aibp-light-gray);
       }
 
+      /* Highlighting states */
+      .manual-added {
+        background-color: #eaf4ea !important;
+      }
+
       .confirmed-row {
         background-color: #eaf4ea !important;
       }
@@ -93,48 +115,18 @@
       .highlight-100 {
         background-color: #fffbe6 !important;
       }
+
       .highlight-200 {
         background-color: #b5c9e3 !important;
       }
-      .confirm-btn,
-      .unconfirm-btn {
-        margin-top: 6px;
-        padding: 6px 12px;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-        font-size: 0.9em;
-      }
 
-      .confirm-btn {
-        background-color: var(--aibp-red);
-        color: white;
-      }
-
-      .confirm-btn:hover {
-        background-color: #831414;
-      }
-
-      .unconfirm-btn {
-        background-color: #666;
-        color: white;
-      }
-
-      .unconfirm-btn:hover {
-        background-color: #444;
-      }
-
+      /* Checkbox styling */
       input[type="checkbox"] {
         margin-right: 6px;
       }
 
       input[type="checkbox"]:disabled {
         opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      button:disabled {
-        background-color: #ccc !important;
         cursor: not-allowed;
       }
     </style>

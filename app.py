@@ -18,11 +18,18 @@ def create_app():
 
     from src.backend.models.compare_model import categorize_token, weights
     from src.backend.routes.compare_route import compare_bp
+    from src.backend.routes.linkedin_route import linkedin_bp
+
     app.register_blueprint(compare_bp)
+    app.register_blueprint(linkedin_bp)
 
     @app.route('/compare')
     def compare():
         return render_template('compare_name.html')
+
+    @app.route('/compare-linkedin')  # ✅ you can define it here if you want
+    def compare_linkedin():
+        return render_template('compare_linkedin.html')
 
     return app
 

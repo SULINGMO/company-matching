@@ -156,6 +156,7 @@
       <button id="unconfirmAllBtn" onclick="unconfirmAllMatches()">
         Unconfirm All
       </button>
+      <button id="linkedinMatchBtn" onclick="triggerLinkedInMatch()">Complete Match & View LinkedIn</button>
     </div>
     <script>
       document
@@ -473,6 +474,39 @@
           .then(() => alert("Selected matches unconfirmed!"))
           .catch(() => alert("One or more unconfirmations failed."));
       }
+
+      function triggerLinkedInMatch() {
+    const form = document.getElementById("uploadForm");
+    const formData = new FormData();
+
+    const linkedin = form.querySelector('input[name="linkedin"]').files[0];
+    if (!linkedin) {
+      alert("⚠ Please upload a LinkedIn file.");
+      return;
+    }
+
+    formData.append("linkedin", linkedin);
+
+    const contact = form.querySelector('input[name="contact"]').files[0];
+    if (contact) formData.append("contact", contact);
+
+    const address = form.querySelector('input[name="address"]').files[0];
+    if (address) formData.append("address", address);
+
+    fetch("/linkedin_match", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.text())
+      .then((html) => {
+        const w = window.open();
+        w.document.write(html);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("❌ Failed to process LinkedIn match");
+      });
+  }
     </script>
   </body>
 </html>

@@ -218,3 +218,84 @@ def unconfirm_from_group():
         target_group.aliases = updated_aliases
         db.session.commit()
         return jsonify({"message": "Selected aliases unconfirmed, speaker preserved"}), 200
+
+@compare_bp.route('/linkedin_match', methods=['POST'])
+def linkedin_match():
+    from flask import request, render_template
+    import pandas as pd
+
+    linkedin_file = request.files.get('linkedin')
+    contact_file = request.files.get('contact')
+    address_file = request.files.get('address')
+
+    if not linkedin_file:
+        return "LinkedIn file is required", 400
+
+    # Read and normalize LinkedIn file
+    linkedin_df = pd.read_excel(linkedin_file)
+    linkedin_df.columns = [col.strip() for col in linkedin_df.columns]
+    linkedin_df["Company_lower"] = linkedin_df["Company"].astype(str).str.lower()
+    linkedin_df["Company_original"] = linkedin_df["Company"]
+
+    if contact_file:
+        contacts_df = pd.read_excel(contact_file)
+        contacts_df.columns = [col.strip() for col in contacts_df.columns]
+        contacts_df["Account Name_lower"] = contacts_df["Account Name"].astype(str).str.lower()
+    else:
+        contacts_df = pd.DataFrame(columns=["Account Name_lower"])
+
+    if address_file:
+        address_df = pd.read_excel(address_file)
+        address_df.columns = [col.strip() for col in address_df.columns]
+        address_df["Company_lower"] = address_df["Company"].astype(str).str.lower()
+    else:
+        address_df = pd.DataFrame(columns=["Company_lower"])
+
+    # Merge all
+    merged = linkedin_df.merge(
+        contacts_df, left_on="Company_lower", right_on="Account Name_lower", how="left"
+    ).merge(
+        address_df, on="Company_lower", how="left"
+    )
+
+    # Combine name: First + Last > Full Name > Name_y (from address)
+    merged["Name"] = (
+        merged.get("First Name", pd.Series([""] * len(merged))).fillna('') + " " +
+        merged.get("Last Name", pd.Series([""] * len(merged))).fillna('')
+    ).str.strip().replace('', pd.NA)
+
+    if "Full Name" in merged.columns:
+        merged["Name"] = merged["Name"].fillna(merged["Full Name"])
+    if "Name_y" in merged.columns:
+        merged["Name"] = merged["Name"].fillna(merged["Name_y"])
+
+    merged = merged.dropna(subset=["Name"])
+
+    # Final columns to show
+    final_columns = [
+        "Name", "Company_original", "Position", "URL", "Email Address",
+        "EE Relationship", "Address"
+    ]
+
+    existing_columns = [col for col in final_columns if col in merged.columns]
+    display = merged[existing_columns].copy()
+
+    # Rename for template
+    display = display.rename(columns={
+        "Company_original": "Company",
+        "URL": "LinkedIn URL",
+        "Email Address": "Email"
+    })
+
+    # Sort results
+    display = display.sort_values(by=["Company", "Name"])
+    display = display.drop_duplicates()
+
+    # Convert to records for HTML
+    people = display.to_dict(orient="records")
+    print(f"\n✅ Final display has {len(display)} rows")
+    print("✅ Final columns:", display.columns.tolist())
+    print("✅ Sample data:")
+    print(display.head(5).to_string(index=False))
+
+    return render_template("linkedin_match.html", people=people)

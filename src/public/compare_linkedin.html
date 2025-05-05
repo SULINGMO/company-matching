@@ -198,117 +198,127 @@
     }
 
   function confirmAll() {
-      const checkboxes = document.querySelectorAll(".match-checkbox:checked");
-      const promises = [];
+  const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+  const promises = [];
 
-      checkboxes.forEach((cb) => {
-        const speaker = cb.dataset.speaker;
-        const type = cb.dataset.type;
-        const name = cb.dataset.name;
+  checkboxes.forEach((cb) => {
+    const speaker = cb.dataset.speaker;
+    const type = cb.dataset.type;
+    const name = cb.dataset.name;
 
-        const payload = {
-          speaker: speaker,
-          fields: [type],
-          [`matched_${type}`]: [name],
-        };
+    const payload = {
+      speaker: speaker,
+      fields: [type],
+      [`matched_${type}`]: [name],
+    };
 
-        promises.push(
-          fetch("/confirm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }).then(() => {
-            const nameDiv = cb.closest("div");
-            const simDiv = document.querySelector(
-              `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]:not(:has(input))`
-            );
+    promises.push(
+      fetch("/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then(() => {
+        const nameDiv = cb.closest("div");
+        const td = cb.closest("td");
+        const simDiv = td?.nextElementSibling?.querySelector("div");
 
-            // Determine similarity value
-            const simPercentText = simDiv?.innerText?.trim().replace("%", "");
-            const similarity = parseInt(simPercentText) / 100;
+        const simPercentText = simDiv?.innerText?.replace("%", "").trim();
+        const similarity = parseFloat(simPercentText) / 100;
 
-            const isExact = similarity === 2.0;
-            const isFuzzy100 = similarity === 1.0;
-            const isAlias = nameDiv?.classList.contains("highlight-100");
+        const isExact = similarity === 2.0;
+        const isFuzzy100 = similarity === 1.0;
+        const isAlias = nameDiv?.classList.contains("highlight-100");
 
-            // Remove existing highlights
-            nameDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
-            simDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
+        // Remove old
+        nameDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
+        simDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
 
-            // Add correct class
-            if (isExact) {
-              nameDiv?.classList.add("highlight-200");
-              simDiv?.classList.add("highlight-200");
-            } else if (isAlias) {
-              nameDiv?.classList.add("highlight-100");
-              simDiv?.classList.add("highlight-100");
-            } else if (isFuzzy100) {
-              nameDiv?.classList.add("manual-added");
-              simDiv?.classList.add("manual-added");
-            }
 
-            cb.checked = false;
-          })
-        );
-      });
+        // FORCE alias color
+        nameDiv?.classList.add("highlight-100");
+        simDiv?.classList.add("highlight-100")
 
-      Promise.all(promises).then(() => alert("Selected matches confirmed!"));
+        // Apply new
+        if (isExact) {
+          nameDiv.classList.add("highlight-200");
+          simDiv.classList.add("highlight-200");
+        } else if (isAlias) {
+          nameDiv.classList.add("highlight-100");
+          simDiv.classList.add("highlight-100");
+        } else if (isFuzzy100) {
+          nameDiv.classList.add("manual-added");
+          simDiv.classList.add("manual-added");
+        }
+
+        cb.checked = false;
+      })
+    );
+  });
+
+  Promise.all(promises).then(() => alert("Selected matches confirmed!"));
+}
+
+
+
+
+
+
+  function unconfirmAll() {
+  const grouped = {};
+
+  document.querySelectorAll(".match-checkbox:checked").forEach((cb) => {
+    const speaker = cb.dataset.speaker;
+    const type = cb.dataset.type;
+    const name = cb.dataset.name;
+
+    if (!grouped[speaker]) grouped[speaker] = { speaker, fields: [] };
+
+    if (!grouped[speaker][`matched_${type}`]) {
+      grouped[speaker][`matched_${type}`] = [];
+      grouped[speaker].fields.push(type);
     }
 
+    grouped[speaker][`matched_${type}`].push(name);
+  });
 
-
-
-    function unconfirmAll() {
-      const grouped = {};
-
-      document.querySelectorAll(".match-checkbox:checked").forEach((cb) => {
-        const speaker = cb.dataset.speaker;
-        const type = cb.dataset.type;
-        const name = cb.dataset.name;
-
-        if (!grouped[speaker]) {
-          grouped[speaker] = { speaker, fields: [] };
-        }
-
-        if (!grouped[speaker][`matched_${type}`]) {
-          grouped[speaker][`matched_${type}`] = [];
-          grouped[speaker].fields.push(type);
-        }
-
-        grouped[speaker][`matched_${type}`].push(name);
-      });
-
-      const promises = Object.values(grouped).map((payload) =>
-        fetch("/unconfirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }).then(() => {
-          const checkboxes = document.querySelectorAll(
-            `.match-checkbox[data-speaker="${payload.speaker}"]:checked`
-          );
-          checkboxes.forEach((cb) => {
-            const speaker = cb.dataset.speaker;
-            const type = cb.dataset.type;
-            const name = cb.dataset.name;
-
-            const div = cb.closest("div");
-            div.classList.remove("manual-added");
-
-            const simDiv = document.querySelector(
-              `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
-            );
-            if (simDiv) {
-              simDiv.classList.remove("manual-added");
-            }
-
-            cb.checked = false;
-          });
-        })
+  const promises = Object.values(grouped).map((payload) =>
+    fetch("/unconfirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(() => {
+      const checkboxes = document.querySelectorAll(
+        `.match-checkbox[data-speaker="${payload.speaker}"]:checked`
       );
 
-      Promise.all(promises).then(() => alert("Selected matches unconfirmed!"));
-    }
+      checkboxes.forEach((cb) => {
+        const nameDiv = cb.closest("div");
+        const td = cb.closest("td");
+        const simDiv = td?.nextElementSibling?.querySelector("div");
+
+        const simPercentText = simDiv?.innerText?.replace("%", "").trim();
+        const similarity = parseFloat(simPercentText) / 100;
+
+        nameDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
+        simDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
+
+        if (similarity === 2.0) {
+          nameDiv.classList.add("highlight-200");
+          simDiv.classList.add("highlight-200");
+        } else if (similarity === 1.0) {
+          nameDiv.classList.add("manual-added");
+          simDiv.classList.add("manual-added");
+        }
+
+        cb.checked = false;
+      });
+    })
+  );
+
+  Promise.all(promises).then(() => alert("Selected matches unconfirmed!"));
+}
+
+
 
   </script>
 </body>

@@ -11,7 +11,8 @@ load_dotenv()
 
 # Create an app factory function
 def create_app():
-    app = Flask(__name__, template_folder='src/public')
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app = Flask(__name__, template_folder=os.path.join(basedir, 'src', 'public'))
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)
@@ -21,7 +22,7 @@ def create_app():
     from src.backend.routes.match_route import match_bp 
     app.register_blueprint(compare_bp)
     app.register_blueprint(match_bp)
-    @app.route('/')
+    @app.route('')
     def home():
         return render_template('index.html')
     @app.route('/compare')

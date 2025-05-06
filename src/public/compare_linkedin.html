@@ -115,6 +115,8 @@
         <th>Contact Similarity</th>
         <th>Address Match</th>
         <th>Address Similarity</th>
+        <th>Similar LinkedIn</th>
+        <th>Linkedin Similarity</th>
       </tr>
     </thead>
     <tbody id="resultsBody"></tbody>
@@ -191,13 +193,52 @@
           row.innerHTML += name + sim;
         });
 
+        // Show top 5 LinkedIn matches that are similar
+        const similarLinkedin = res.matched_linkedin_similar || [];
+        let similarNamesTd = '<td>';
+        let similarSimsTd = '<td>';
+
+        similarLinkedin.forEach((match) => {
+          let highlightClass = "";
+
+          if (match.similarity === 2.0) {
+            highlightClass = "highlight-200";
+          } else if (match.fromAliasMatch) {
+            highlightClass = "highlight-100";
+          } else if (match.similarity === 1.0) {
+            highlightClass = "manual-added";
+          }
+
+          similarNamesTd += `
+            <div class="${highlightClass}" data-speaker="${res.linkedin}" data-type="linkedin_similar" data-name="${match.name}"
+                 style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+              <input type="checkbox"
+                     class="match-checkbox"
+                     data-type="linkedin_similar"
+                     data-speaker="${res.linkedin}"
+                     data-name="${match.name}">
+              ${match.name}
+            </div>`;
+
+          similarSimsTd += `
+            <div class="${highlightClass}" data-speaker="${res.linkedin}" data-type="linkedin_similar" data-name="${match.name}"
+                 style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+              ${(match.similarity * 100).toFixed(0)}%
+            </div>`;
+        });
+
+        similarNamesTd += '</td>';
+        similarSimsTd += '</td>';
+        row.innerHTML += similarNamesTd + similarSimsTd;
+
+
         body.appendChild(row);
       });
 
       table.style.display = "table";
     }
 
-  function confirmAll() {
+function confirmAll() {
   const checkboxes = document.querySelectorAll(".match-checkbox:checked");
   const promises = [];
 
@@ -218,37 +259,24 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }).then(() => {
-        const nameDiv = cb.closest("div");
-        const td = cb.closest("td");
-        const simDiv = td?.nextElementSibling?.querySelector("div");
+        const allDivs = document.querySelectorAll(
+          `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
+        );
 
-        const simPercentText = simDiv?.innerText?.replace("%", "").trim();
-        const similarity = parseFloat(simPercentText) / 100;
+        allDivs.forEach((div) => {
+          div.classList.remove("highlight-200", "highlight-100", "manual-added");
 
-        const isExact = similarity === 2.0;
-        const isFuzzy100 = similarity === 1.0;
-        const isAlias = nameDiv?.classList.contains("highlight-100");
+          const simText = div.innerText?.replace("%", "").trim();
+          const similarity = parseFloat(simText) / 100;
 
-        // Remove old
-        nameDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
-        simDiv?.classList.remove("highlight-200", "highlight-100", "manual-added");
-
-
-        // FORCE alias color
-        nameDiv?.classList.add("highlight-100");
-        simDiv?.classList.add("highlight-100")
-
-        // Apply new
-        if (isExact) {
-          nameDiv.classList.add("highlight-200");
-          simDiv.classList.add("highlight-200");
-        } else if (isAlias) {
-          nameDiv.classList.add("highlight-100");
-          simDiv.classList.add("highlight-100");
-        } else if (isFuzzy100) {
-          nameDiv.classList.add("manual-added");
-          simDiv.classList.add("manual-added");
-        }
+          if (similarity === 2.0) {
+            div.classList.add("highlight-200"); // exact
+          } else if (similarity === 1.0) {
+            div.classList.add("manual-added"); // green
+          } else {
+            div.classList.add("highlight-100"); // alias (forced)
+          }
+        });
 
         cb.checked = false;
       })
@@ -257,7 +285,6 @@
 
   Promise.all(promises).then(() => alert("Selected matches confirmed!"));
 }
-
 
 
 

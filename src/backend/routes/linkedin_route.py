@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from src.backend.models.compare_model import categorize_token, weights, CompanyGroup
 from src.backend.simhash import calculate_weighted_simhash
-from fuzzywuzzy import fuzz
 import pandas as pd
 import json
 from src.backend.db import db
@@ -41,19 +40,30 @@ def upload_linkedin():
 
 def perform_matching(source_df, source_key, uploaded_files, company_groups):
     results = []
+    seen_aliases = set()
+
     for _, source in source_df.iterrows():
         source_name = source['Company']
+
+        # Skip if this company (or its alias) has already been handled
+        if source_name in seen_aliases:
+            continue
+
         result = {
             source_key: source_name,
             'matched_contact': [],
-            'matched_address': []
+            'matched_address': [],
+            'matched_linkedin_similar': []
         }
 
         source_aliases = []
         for group in company_groups:
             if source_name in group.aliases:
                 source_aliases = group.aliases
+                seen_aliases.update(group.aliases)
                 break
+        else:
+            seen_aliases.add(source_name)
 
         for key in ['contact', 'address']:
             if key not in uploaded_files:
@@ -83,13 +93,47 @@ def perform_matching(source_df, source_key, uploaded_files, company_groups):
             if matches:
                 result[f'matched_{key}'] = [matches[0]]
 
-        if any(result[key] for key in ['matched_contact', 'matched_address']):
+        # ✅ SimHash-based LinkedIn-to-LinkedIn similarity (no exact)
+        if 'linkedin' in uploaded_files:
+            df_linkedin = uploaded_files['linkedin']
+            similar_matches = []
+
+            # Get aliases for current source_name only
+            source_aliases = []
+            for group in company_groups:
+                if source_name in group.aliases:
+                    source_aliases = group.aliases
+                    break
+
+            for alt_name in df_linkedin['Company'].dropna().unique():
+                alt_name_clean = str(alt_name).strip()
+                current_name_clean = str(source_name).strip()
+
+                if alt_name_clean.lower() == current_name_clean.lower():
+                    continue  # skip exact match
+
+                similarity = calculate_weighted_simhash(source_name, alt_name, categorize_token, weights)
+                if similarity > 0.7 and similarity < 2.0:
+                    is_alias = alt_name in source_aliases
+
+                    similar_matches.append({
+                        'name': alt_name,
+                        'similarity': round(similarity, 2),
+                        'fromAliasMatch': is_alias
+                    })
+
+            result['matched_linkedin_similar'] = sorted(similar_matches, key=lambda x: -x['similarity'])[:5]
+
+        # Only include if anything was matched
+        if any(result[key] for key in ['matched_contact', 'matched_address', 'matched_linkedin_similar']):
             results.append(result)
 
+    # Sorting by highest similarity across all match types
     for result in results:
         all_similarities = [
-            match['similarity'] for key in ['matched_contact', 'matched_address']
-            for match in result[key] if match.get('similarity')
+            match['similarity']
+            for key in ['matched_contact', 'matched_address', 'matched_linkedin_similar']
+            for match in result.get(key, []) if match.get('similarity')
         ]
         result['max_similarity'] = max(all_similarities) if all_similarities else 0
 

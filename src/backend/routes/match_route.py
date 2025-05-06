@@ -27,7 +27,7 @@ def read_file_as_df(file_key):
 def find_all_matching_rows(df, match_columns, target_name):
     target_lower = target_name.lower().strip()
     matched_rows = []
-    for _, row in df.iterrows():
+    for row in df.itertuples(index=False):
         for col in match_columns:
             if col in df.columns:
                 cell_value = str(row[col]).strip().lower()

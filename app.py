@@ -21,9 +21,7 @@ def create_app():
     from src.backend.routes.match_route import match_bp 
     app.register_blueprint(compare_bp)
     app.register_blueprint(match_bp)
-    @app.route('')
-    def home():
-        return render_template('index.html')
+
     @app.route('/compare')
     def compare():
         return render_template('compare_name.html')

@@ -27,14 +27,19 @@ def read_file_as_df(file_key):
 def find_all_matching_rows(df, match_columns, target_name):
     target_lower = target_name.lower().strip()
     matched_rows = []
+    
     for row in df.itertuples(index=False):
         for col in match_columns:
-            if col in df.columns:
-                cell_value = str(row[col]).strip().lower()
+            try:
+                cell_value = str(getattr(row, col)).strip().lower()
                 if target_lower == cell_value or fuzz.ratio(target_lower, cell_value) == 100:
-                    matched_rows.append(row)
+                    matched_rows.append(row._asdict())  # Convert namedtuple to dict
                     break
+            except AttributeError:
+                continue  # Skip if column name is not in row (can happen in some edge cases)
+
     return matched_rows
+
 
 def clean_nan(obj):
     if isinstance(obj, float) and math.isnan(obj):
@@ -103,7 +108,8 @@ def match_data():
                 matching_rows = find_all_matching_rows(df, match_cols, name)
                 for match_row in matching_rows:
                     enriched = {'Company': company}
-                    enriched.update(match_row.to_dict())
+                    enriched.update(match_row)
+
 
                     if 'Full Name' in enriched and enriched['Full Name']:
                         enriched['Name'] = enriched['Full Name']

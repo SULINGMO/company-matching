@@ -8,7 +8,10 @@ class Simhash:
         self.value = self._simhash(text, weight_func, weights)
 
     def _tokenize(self, text):
-        return re.findall(r'\w+', text.lower()) if text else []
+      if not isinstance(text, str):
+        text = str(text) if text is not None else ""
+        return re.findall(r'\w+', text.lower())
+
 
     def _hash_bin(self, token):
         """

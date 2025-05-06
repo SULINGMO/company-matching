@@ -36,6 +36,10 @@ def create_app():
     def compare_linkedin():
         return render_template('compare_linkedin.html')
 
+    @app.route('/match-linkedin')
+    def match_linkedin():
+        return render_template('match_linkedin.html')
+
     return app
 
 

@@ -18,12 +18,16 @@ def create_app():
 
     from src.backend.models.compare_model import categorize_token, weights
     from src.backend.routes.compare_route import compare_bp
+    from src.backend.routes.match_route import match_bp 
     app.register_blueprint(compare_bp)
+    app.register_blueprint(match_bp)
 
     @app.route('/compare')
     def compare():
         return render_template('compare_name.html')
-
+    @app.route('/match')
+    def match():
+        return render_template('match_data.html')
     return app
 
 

@@ -1,1 +1,1 @@
-web: gunicorn company_name:app --timeout 500
+web: gunicorn "app:create_app()"

@@ -11,8 +11,7 @@ load_dotenv()
 
 # Create an app factory function
 def create_app():
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    app = Flask(__name__, template_folder=os.path.join(basedir, 'src', 'public'))
+    app = Flask(__name__, template_folder='src/public')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db.init_app(app)

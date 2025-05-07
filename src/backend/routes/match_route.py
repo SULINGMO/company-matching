@@ -174,3 +174,134 @@ def download_unmatched():
         as_attachment=True,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+@match_bp.route('/match_linkedin_data', methods=['POST'])
+def match_linkedin_data():
+    global latest_unmatched
+
+    try:
+        linkedin_df = pd.read_excel(request.files['linkedin'])
+        linkedin_df = linkedin_df.dropna(subset=['Company']).drop_duplicates(subset=['Company'])
+    except Exception as e:
+        return jsonify({'error': f'Error reading linkedin file: {e}'}), 400
+
+    contact_df = read_file_as_df('contact')
+    address_df = read_file_as_df('address')
+
+    company_groups = CompanyGroup.query.all()
+    alias_groups = []
+    for group in company_groups:
+        try:
+            aliases = group.aliases
+            if isinstance(aliases, str):
+                aliases = ast.literal_eval(aliases)
+            alias_group = [alias.strip() for alias in aliases]
+            alias_groups.append(alias_group)
+        except Exception as e:
+            print(f"⚠️ Could not parse aliases for group ID {group.id}: {group.aliases}")
+    print(f"✅ Loaded {len(alias_groups)} alias groups.")
+
+    results = []
+    matched_companies = []
+
+    for _, row in linkedin_df.iterrows():
+        company = row['Company'].strip()
+        matched_alias_group = None
+
+        for alias_group in alias_groups:
+            if any(
+                company.lower() == alias.lower() or
+                fuzz.ratio(company.lower(), alias.lower()) == 100
+                for alias in alias_group
+            ):
+                matched_alias_group = alias_group
+                break
+
+        matched_names = matched_alias_group if matched_alias_group else [company]
+
+        all_sources = [
+            (contact_df, ['Account Name']),
+            (address_df, ['Company']),
+            (linkedin_df, ['Company'])
+        ]
+
+        match_found = False
+        for df, match_cols in all_sources:
+            for name in matched_names:
+                matching_rows = find_all_matching_rows(df, match_cols, name)
+                for match_row in matching_rows:
+                    enriched = {'Company': company}
+                    enriched.update(match_row)
+
+                    if 'Full Name' in enriched and enriched['Full Name']:
+                        enriched['Name'] = enriched['Full Name']
+                    elif enriched.get('First Name') or enriched.get('Last Name'):
+                        first = enriched.get('First Name') or ''
+                        last = enriched.get('Last Name') or ''
+                        enriched['Name'] = f"{first} {last}".strip()
+
+                    ordered = {'Company': enriched['Company']}
+                    if 'Name' in enriched:
+                        ordered['Name'] = enriched['Name']
+                    for key, value in enriched.items():
+                        if key not in ['Company', 'Name']:
+                            ordered[key] = value
+
+                    results.append(ordered)
+                    match_found = True
+
+        if match_found:
+            matched_companies.append(company)
+
+    unmatched = []
+    for _, row in linkedin_df.iterrows():
+        company = row['Company'].strip()
+        if company not in matched_companies:
+            unmatched.append(row.to_dict())
+
+    cleaned_results = [clean_nan(row) for row in results]
+    unmatched_clean = [clean_nan(row) for row in unmatched]
+    latest_unmatched = unmatched_clean
+
+    accept_header = request.headers.get("Accept", "").lower()
+    if "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in accept_header:
+        df = pd.DataFrame(cleaned_results)
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='Matched Data')
+        output.seek(0)
+        return send_file(
+            output,
+            download_name="linkedin_matched_data.xlsx",
+            as_attachment=True,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+    return jsonify({
+        "matched": cleaned_results,
+        "unmatched": unmatched_clean
+    }), 200
+
+
+@match_bp.route('/download_linkedin_unmatched', methods=['GET'])
+def download_linkedin_unmatched():
+    global latest_unmatched
+
+    if not latest_unmatched:
+        return jsonify({"error": "No unmatched data available."}), 400
+
+    df = pd.DataFrame(latest_unmatched)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Unmatched Data')
+    output.seek(0)
+
+    return send_file(
+        output,
+        download_name="linkedin_unmatched_data.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+

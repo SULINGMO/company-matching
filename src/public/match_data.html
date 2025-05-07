@@ -88,13 +88,49 @@
     <button id="downloadMatchedBtn" type="button" disabled>Download Matched Excel</button>
     <button id="downloadUnmatchedBtn" type="button" disabled>Download Unmatched Excel</button>
   </form>
-
+  <div id="searchBar" style="margin-top: 30px; display: none; text-align: center;">
+    <input
+      type="text"
+      id="searchName"
+      placeholder="Search by name"
+      style="padding: 10px; width: 220px; margin-right: 10px; border-radius: 5px; border: 1px solid #ccc;" />
+    <input
+      type="text"
+      id="searchTitle"
+      placeholder="Search by job title"
+      style="padding: 10px; width: 220px; border-radius: 5px; border: 1px solid #ccc;" />
+  </div>
+  
   <table id="resultTable" style="display: none;">
     <thead id="resultHeaders"></thead>
     <tbody id="resultBody"></tbody>
   </table>
 
   <script>
+    function applyFilters() {
+  const nameQuery = document.getElementById("searchName").value.toLowerCase();
+  const titleQuery = document.getElementById("searchTitle").value.toLowerCase();
+  const rows = document.querySelectorAll("#resultBody tr");
+
+  rows.forEach(row => {
+    const cells = row.querySelectorAll("td");
+    const rowText = Array.from(cells).map(cell => cell.textContent.toLowerCase());
+
+    const nameMatch = rowText.some(text => text.includes(nameQuery));
+    const titleMatch = rowText.some(text => text.includes(titleQuery));
+
+    // Show row only if both queries match
+    if (nameMatch && titleMatch) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+document.getElementById("searchName").addEventListener("input", applyFilters);
+document.getElementById("searchTitle").addEventListener("input", applyFilters);
+
     let cachedFormData = null;
 
     const form = document.getElementById("uploadForm");
@@ -131,6 +167,7 @@
       const body = document.getElementById("resultBody");
 
       table.style.display = "table";
+      document.getElementById("searchBar").style.display = "block";
       headers.innerHTML = "";
       body.innerHTML = "";
 

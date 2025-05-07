@@ -1,4 +1,4 @@
-from flask import Flask,render_template
+from flask import Flask, render_template
 import os
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
@@ -6,7 +6,6 @@ from src.backend.models.compare_model import CompanyGroup
 from src.backend.db import db
 
 # Load environment variables
-
 load_dotenv()
 
 # Create an app factory function
@@ -25,16 +24,16 @@ def create_app():
     @app.route('/compare')
     def compare():
         return render_template('compare_name.html')
+
     @app.route('/match')
     def match():
         return render_template('match_data.html')
+
     return app
 
-
-   
+# Expose app directly for Gunicorn
+app = create_app()
 
 if __name__ == '__main__':
-    app = create_app()  # ✅ Use the properly configured app
-    print(app.url_map)  # Optional: confirm all routes
+    print(app.url_map)
     app.run(debug=True)
-

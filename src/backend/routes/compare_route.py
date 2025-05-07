@@ -36,13 +36,19 @@ def upload_file():
             except Exception as e:
                 return jsonify({"error": f"Error reading file {key}: {str(e)}"}), 500
 
-    # Build fallback dataset from uploaded files
-    all_names = {}
-    for key, df in uploaded_files.items():
-        if key == 'speaker':
-            continue
-        column = 'Account Name' if key in ['account', 'contact'] else 'Company'
-        all_names[key] = df[column].dropna().unique()
+    def match_company_names(speaker_name, df_column, speaker_aliases, categorize_token, weights):
+        matches = []
+        for name in df_column:
+            if speaker_name.strip().lower() == name.strip().lower():
+                matches.append({'name': name, 'similarity': 2.0, 'fromAliasMatch': False})
+                continue
+            if name.strip() in speaker_aliases:
+                matches.append({'name': name, 'similarity': 1.0, 'fromAliasMatch': True})
+                continue
+            similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
+            if similarity >= 0.7:
+                matches.append({'name': name, 'similarity': round(similarity, 2), 'fromAliasMatch': False})
+        return sorted(matches, key=lambda x: -x['similarity'])
 
     results = []
     company_groups = CompanyGroup.query.all()
@@ -58,62 +64,25 @@ def upload_file():
         }
 
         speaker_aliases = []
-
-        # Find aliases for this speaker if it exists
         for group in company_groups:
             if speaker_name in group.aliases:
                 speaker_aliases = group.aliases
                 break
 
         for key in ['account', 'contact', 'linkedin', 'address']:
-            matches = []
             if key in uploaded_files:
                 df = uploaded_files[key]
                 column = 'Account Name' if key in ['account', 'contact'] else 'Company'
-
-                # Step 1: Exact match
-                for name in df[column]:
-                    if speaker_name.strip().lower() == name.strip().lower():  # exact match (case insensitive)
-                        matches.append({
-                            'name': name,
-                            'similarity': 2.0,
-                            'fromAliasMatch': False
-                        })
-
-                # Step 2: Alias match
-                if not matches:
-                    for name in df[column]:
-                        if name.strip() in speaker_aliases:
-                            similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
-                            matches.append({
-                                'name': name,
-                                'similarity': round(similarity, 2),
-                                'fromAliasMatch': True
-                            })
-
-                # Step 3: Normal similarity match
-                if not matches:
-                    for name in df[column]:
-                        similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
-                        if similarity >= 0.7:
-                            matches.append({
-                                'name': name,
-                                'similarity': round(similarity, 2),
-                                'fromAliasMatch': False
-                            })
-
-                matches = sorted(matches, key=lambda x: -x['similarity'])
+                matches = match_company_names(speaker_name, df[column], speaker_aliases, categorize_token, weights)
                 if matches:
                     if key == 'linkedin':
-                        result[f'matched_{key}'] = matches[:5]  # top 5 for LinkedIn
+                        result[f'matched_{key}'] = matches[:5]
                     else:
-                        result[f'matched_{key}'] = [matches[0]]  # still show only 1 best for others
+                        result[f'matched_{key}'] = [matches[0]]
 
-        # Only add result if there is any match
         if any(result[key] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']):
             results.append(result)
 
-    # Sort results by max similarity
     for result in results:
         all_similarities = [
             match['similarity'] for key in ['matched_account', 'matched_contact', 'matched_linkedin', 'matched_address']
@@ -122,11 +91,9 @@ def upload_file():
         result['max_similarity'] = max(all_similarities) if all_similarities else 0
 
     results = sorted(results, key=lambda x: -x['max_similarity'])
-
     for result in results:
         result.pop('max_similarity', None)
 
-    import json
     print(json.dumps(results, indent=2))
     return jsonify(results)
 

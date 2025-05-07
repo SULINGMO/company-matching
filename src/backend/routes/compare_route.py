@@ -7,6 +7,12 @@ from src.backend.db import db
 import json
 
 compare_bp = Blueprint('compare_bp', __name__, template_folder='templates')
+def safe_load_company_groups():
+    try:
+        return db.session.query(CompanyGroup).yield_per(100).all()
+    except Exception as e:
+        print("❌ Error fetching company groups:", e)
+        return []
 
 @compare_bp.route('/upload', methods=['POST'])
 def upload_file():
@@ -45,7 +51,8 @@ def upload_file():
         all_names[key] = df[column].dropna().unique()
 
     results = []
-    company_groups = CompanyGroup.query.all()
+    company_groups = safe_load_company_groups()
+
 
     for _, speaker in uploaded_files['speaker'].iterrows():
         speaker_name = speaker['Company']

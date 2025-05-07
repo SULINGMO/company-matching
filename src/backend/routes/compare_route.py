@@ -10,6 +10,9 @@ compare_bp = Blueprint('compare_bp', __name__, template_folder='templates')
 
 @compare_bp.route('/upload', methods=['POST'])
 def upload_file():
+    if request.content_length and request.content_length > 5 * 1024 * 1024:
+        return jsonify({"error": "File too large. Please upload a smaller file (<5MB)."}), 413
+
     uploaded_files = {}
     speaker_file = request.files.get('speaker')
     if not speaker_file:

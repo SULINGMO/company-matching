@@ -1,60 +1,56 @@
 import re
 import hashlib
+import numpy as np
 
 class Simhash:
-    def __init__(self, text, weight_func=None, weights=None):
+    def __init__(self, text, weight_func=None, weights=None, hashbits=128):
+        self.hashbits = hashbits
         self.value = self._simhash(text, weight_func, weights)
 
     def _tokenize(self, text):
-        """
-        Tokenize the input text and convert it to lowercase.
-        Handles some common company-specific tokenization issues.
-        """
-        return re.findall(r'\w+', text.lower())
+     if not isinstance(text, str):
+        text = str(text) if text is not None else ""
+        text = text.strip()
+     return re.findall(r'\w+', text.lower())
 
-    def _hash(self, token):
+
+
+    def _hash_bin(self, token):
         """
-        Returns the MD5 hash of the token as a large integer.
+        Returns a binary string of the hash of the token.
         """
-        return int(hashlib.md5(token.encode('utf-8')).hexdigest(), 16)
+        return bin(int(hashlib.md5(token.encode('utf-8')).hexdigest(), 16))[2:].zfill(self.hashbits)
 
     def _simhash(self, text, weight_func, weights):
-        """
-        Generate the SimHash for the provided text using weighted tokens.
-        """
         tokens = self._tokenize(text)
-        v = [0] * 128  # SimHash vector for 128-bit hash
+        if not tokens:
+            return 0
+
+        v = np.zeros(self.hashbits, dtype=np.float32)
 
         for token in tokens:
-            h = self._hash(token)
-            category = weight_func(token) if weight_func else 'company'
-            weight = weights.get(category, 1.0) if weights else 1.0
+            weight = 1.0
+            if weight_func:
+                category = weight_func(token)
+                weight = weights.get(category, 1.0) if weights else 1.0
 
-            for i in range(128):
-                bitmask = 1 << i
-                if h & bitmask:
-                    v[i] += weight
-                else:
-                    v[i] -= weight
+            hashbits = self._hash_bin(token)
+            for i, bit in enumerate(hashbits):
+                v[i] += weight if bit == '1' else -weight
 
+        # Generate final fingerprint
         fingerprint = 0
-        for i in range(128):
-            if v[i] >= 0:
-                fingerprint |= 1 << i
+        for i, val in enumerate(v):
+            if val >= 0:
+                fingerprint |= (1 << (self.hashbits - 1 - i))
 
         return fingerprint
 
+
 def hamming_distance(hash1, hash2):
-    """
-    Calculate and return the Hamming distance between two hash values.
-    """
-    x = hash1 ^ hash2
-    return bin(x).count('1')
+    return bin(hash1 ^ hash2).count('1')
 
 def calculate_weighted_simhash(text1, text2, categorize_func, weights):
-    """
-    Compare two pieces of text by their weighted SimHash and return similarity ratio (0.0 to 1.0).
-    """
     if not callable(categorize_func):
         raise TypeError("categorize_func must be a callable function")
 
@@ -63,6 +59,4 @@ def calculate_weighted_simhash(text1, text2, categorize_func, weights):
 
     distance = hamming_distance(simhash1, simhash2)
     similarity = 1 - (distance / 128)
-
     return similarity
-

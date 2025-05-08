@@ -18,8 +18,11 @@ def create_app():
 
     from src.backend.models.compare_model import categorize_token, weights
     from src.backend.routes.compare_route import compare_bp
-    from src.backend.routes.match_route import match_bp 
+    from src.backend.routes.linkedin_route import linkedin_bp
+    from src.backend.routes.match_route import match_bp
+
     app.register_blueprint(compare_bp)
+    app.register_blueprint(linkedin_bp)
     app.register_blueprint(match_bp)
     @app.route('/')
     def home():
@@ -30,6 +33,15 @@ def create_app():
     @app.route('/match')
     def match():
         return render_template('match_data.html')
+
+    @app.route('/compare-linkedin')  # ✅ you can define it here if you want
+    def compare_linkedin():
+        return render_template('compare_linkedin.html')
+
+    @app.route('/match-linkedin')
+    def match_linkedin():
+        return render_template('match_linkedin.html')
+
     return app
 
 

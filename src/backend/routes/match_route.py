@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, send_file
 import pandas as pd
 from fuzzywuzzy import fuzz
 from src.backend.models.compare_model import CompanyGroup
-from src.backend.db import db
+from src.backend.db import db    
 import ast
 import math
 from io import BytesIO
@@ -113,18 +113,30 @@ def match_data():
                         last = enriched.get('Last Name') or ''
                         enriched['Name'] = f"{first} {last}".strip()
 
-                    ordered = {'Company': enriched['Company']}
+                    ordered = {}
                     if 'Name' in enriched:
-                        ordered['Name'] = enriched['Name']
+                       ordered['Name'] = enriched['Name']
+                    ordered['Company'] = enriched.get('Company', '')
+
+# Add remaining fields, excluding Name and Company
                     for key, value in enriched.items():
-                        if key not in ['Company', 'Name']:
-                            ordered[key] = value
+                       if key not in ['Name', 'Company']:
+                        ordered[key] = value
 
                     results.append(ordered)
                     match_found = True
 
         if match_found:
             matched_companies.append(company)
+        ee_order = {'cat a': 1, 'cat b': 2, 'cat c': 3, 'cat d': 4}
+        def ee_sort_key(row):
+         ee_value = str(row.get('EE Relationship', '')).lower()
+         for cat, order in ee_order.items():
+            if cat in ee_value:
+                return order
+         return 99
+
+        results.sort(key=ee_sort_key)
 
     unmatched = []
     for _, row in speaker_df.iterrows():

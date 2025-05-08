@@ -20,10 +20,12 @@ def create_app():
     from src.backend.routes.compare_route import compare_bp
     from src.backend.routes.linkedin_route import linkedin_bp
     from src.backend.routes.match_route import match_bp
+    from src.backend.routes.alias_route import alias_bp
 
     app.register_blueprint(compare_bp)
     app.register_blueprint(linkedin_bp)
     app.register_blueprint(match_bp)
+    app.register_blueprint(alias_bp)
     @app.route('/')
     def home():
         return render_template('index.html')
@@ -41,6 +43,10 @@ def create_app():
     @app.route('/match-linkedin')
     def match_linkedin():
         return render_template('match_linkedin.html')
+
+    @app.route('/alias-manager')
+    def alias_manager():
+        return render_template('alias_manager.html')
 
     return app
 

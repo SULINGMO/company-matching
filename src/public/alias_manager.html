@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Alias Manager</title>
+  <style>
+    :root {
+      --aibp-red: #a51916;
+      --aibp-cream: #fdfaf6;
+      --aibp-dark: #2c2c2c;
+      --aibp-light-gray: #f5f5f5;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--aibp-cream);
+      color: var(--aibp-dark);
+      margin: 20px;
+    }
+
+    h2 {
+      color: var(--aibp-red);
+    }
+
+    .navbar {
+      background-color: var(--aibp-red);
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-brand {
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .navbar-links a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .navbar-links a:hover {
+      color: #ffd1d1;
+    }
+
+    .card {
+      background-color: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .alias-list {
+      margin-top: 10px;
+    }
+
+    .alias-list span {
+      background-color: var(--aibp-light-gray);
+      padding: 5px 10px;
+      margin: 3px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    button {
+      background-color: var(--aibp-red);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button.delete {
+      background-color: #666;
+    }
+
+    input[type="text"] {
+      padding: 6px;
+      margin-right: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand">AIBP Match Dashboard</div>
+    <div class="navbar-links">
+      <a href="/compare">Compare Name</a>
+      <a href="/match">Match Data</a>
+      <a href="/compare-linkedin">Compare Linkedin Name</a>
+      <a href="/match-linkedin">Match Linkedin Name</a>
+      <a href="/alias-manager">Alias Manager</a>
+    </div>
+  </nav>
+
+  <h2>Alias Group Manager</h2>
+
+  <div class="card">
+    <h3>Create New Alias Group</h3>
+    <input type="text" id="newAlias" placeholder="Alias 1, Alias 2, ..." />
+    <button onclick="createGroup()">Create Group</button>
+  </div>
+
+  <div id="aliasGroups"></div>
+
+  <script>
+    async function fetchGroups() {
+      const res = await fetch("/api/aliases");
+      const data = await res.json();
+      const container = document.getElementById("aliasGroups");
+      container.innerHTML = "";
+
+      data.forEach((group) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const id = group.id;
+        card.innerHTML = `
+          <h4>Group ID: ${id}</h4>
+          <div class="alias-list">
+            ${group.aliases.map(alias => `
+              <span>${alias}
+                <button class="remove-alias-btn" data-id="${id}" data-alias="${encodeURIComponent(alias)}">x</button>
+              </span>
+            `).join("")}
+          </div>
+          <input type="text" id="add-alias-${id}" placeholder="Add alias..." />
+          <button onclick="addAlias(${id})">Add Alias</button>
+          <button class="delete" onclick="deleteGroup(${id})">Delete Group</button>
+        `;
+
+        container.appendChild(card);
+      });
+
+      // Bind remove alias buttons after rendering
+      document.querySelectorAll('.remove-alias-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const alias = decodeURIComponent(btn.dataset.alias);
+          removeAlias(id, alias);
+        });
+      });
+    }
+
+    async function createGroup() {
+      const input = document.getElementById("newAlias");
+      const aliases = input.value.split(",").map(s => s.trim()).filter(Boolean);
+      if (aliases.length === 0) return alert("Please enter at least one alias");
+
+      await fetch("/api/aliases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aliases }),
+      });
+
+      input.value = "";
+      fetchGroups();
+    }
+
+    async function addAlias(groupId) {
+      const input = document.getElementById(`add-alias-${groupId}`);
+      const newAlias = input.value.trim();
+      if (!newAlias) return alert("Alias cannot be empty.");
+
+      await fetch(`/api/aliases/${groupId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add", alias: newAlias }),
+      });
+
+      input.value = "";
+      fetchGroups();
+    }
+
+    async function removeAlias(groupId, alias) {
+      await fetch(`/api/aliases/${groupId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "remove", alias }),
+      });
+
+      fetchGroups();
+    }
+
+    async function deleteGroup(groupId) {
+      if (!confirm("Are you sure you want to delete this group?")) return;
+
+      await fetch(`/api/aliases/${groupId}`, {
+        method: "DELETE",
+      });
+
+      fetchGroups();
+    }
+
+    fetchGroups();
+  </script>
+</body>
+</html>

@@ -156,54 +156,76 @@
       });
     }
 
-    async function createGroup() {
-      const input = document.getElementById("newAlias");
-      const aliases = input.value.split(",").map(s => s.trim()).filter(Boolean);
-      if (aliases.length === 0) return alert("Please enter at least one alias");
+      async function createGroup() {
+          const input = document.getElementById("newAlias");
+          const aliases = input.value.split(",").map(s => s.trim()).filter(Boolean);
+          if (aliases.length === 0) return alert("Please enter at least one alias");
 
-      await fetch("/api/aliases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aliases }),
-      });
+          const res = await fetch("/api/aliases", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ aliases }),
+          });
 
-      input.value = "";
-      fetchGroups();
-    }
+          if (res.ok) {
+            alert("✅ New group created successfully");
+            input.value = "";
+            fetchGroups();
+          } else {
+            alert("❌ Failed to create group");
+          }
+        }
 
     async function addAlias(groupId) {
       const input = document.getElementById(`add-alias-${groupId}`);
       const newAlias = input.value.trim();
       if (!newAlias) return alert("Alias cannot be empty.");
 
-      await fetch(`/api/aliases/${groupId}`, {
+      const res = await fetch(`/api/aliases/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "add", alias: newAlias }),
       });
 
-      input.value = "";
-      fetchGroups();
+      if (res.ok) {
+        alert("✅ Alias added successfully");
+        input.value = "";
+        fetchGroups();
+      } else {
+        const error = await res.json();
+        alert(`❌ ${error.error || "Failed to add alias"}`);
+      }
     }
 
     async function removeAlias(groupId, alias) {
-      await fetch(`/api/aliases/${groupId}`, {
+      const res = await fetch(`/api/aliases/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "remove", alias }),
       });
 
-      fetchGroups();
+      if (res.ok) {
+        alert("🗑 Alias removed successfully");
+        fetchGroups();
+      } else {
+        const error = await res.json();
+        alert(`❌ ${error.error || "Failed to remove alias"}`);
+      }
     }
 
     async function deleteGroup(groupId) {
       if (!confirm("Are you sure you want to delete this group?")) return;
 
-      await fetch(`/api/aliases/${groupId}`, {
+      const res = await fetch(`/api/aliases/${groupId}`, {
         method: "DELETE",
       });
 
-      fetchGroups();
+      if (res.ok) {
+        alert("🗑 Group deleted successfully");
+        fetchGroups();
+      } else {
+        alert("❌ Failed to delete group");
+      }
     }
 
     fetchGroups();

@@ -73,10 +73,47 @@
     tr:nth-child(even) {
       background-color: #f5f5f5;
     }
-  </style>
-</head>
+    .navbar {
+        background-color: var(--aibp-red);
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
 
-<body>
+      .navbar-brand {
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+      }
+
+      .navbar-links a {
+        color: white;
+        text-decoration: none;
+        margin-left: 20px;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+
+      .navbar-links a:hover {
+        color: #ffd1d1; /* lighter shade on hover */
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav class="navbar">
+      <div class="navbar-brand">AIBP Tools Dashboard</div>
+      <div class="navbar-links">
+        <a href="/compare">Compare Name</a>
+        <a href="/match">Match Data</a>
+        <a href="/compare-linkedin">Compare Linkedin Name</a>
+        <a href="/match-linkedin">Match Linkedin Name</a>
+      </div>
+    </nav>
   <h2>Upload Files for Company Data Matching</h2>
   <form id="uploadForm" enctype="multipart/form-data">
     <label>Speaker File (required): <input type="file" name="speaker" required /></label>

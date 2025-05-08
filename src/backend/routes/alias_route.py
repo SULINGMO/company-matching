@@ -18,10 +18,25 @@ def create_alias_group():
     if not aliases or not isinstance(aliases, list):
         return jsonify({"error": "Invalid aliases"}), 400
 
+    # Normalize for case-insensitive match
+    input_aliases = set(a.strip().lower() for a in aliases)
+    all_groups = CompanyGroup.query.all()
+
+    duplicates = []
+    for group in all_groups:
+        group_aliases = set(a.lower() for a in group.aliases)
+        overlap = input_aliases.intersection(group_aliases)
+        if overlap:
+            duplicates.extend(overlap)
+
+    if duplicates:
+        return jsonify({"error": f"Duplicate alias(es) already exist: {', '.join(sorted(set(duplicates)))}"}), 400
+
     group = CompanyGroup(aliases=aliases)
     db.session.add(group)
     db.session.commit()
     return jsonify({"message": "Group created", "id": group.id}), 201
+
 
 @alias_bp.route('/api/aliases/<int:group_id>', methods=['PUT'])
 def update_alias_group(group_id):
@@ -29,50 +44,42 @@ def update_alias_group(group_id):
     action = data.get('action')
     alias = data.get('alias')
 
-    print(f"\n📥 Received PUT request on /api/aliases/{group_id}")
-    print(f"   Action: {action}")
-    print(f"   Alias: {alias}")
-
+    print(f"\n📥 PUT on /api/aliases/{group_id} | Action: {action}, Alias: {alias}")
     group = CompanyGroup.query.get(group_id)
     if not group:
-        print("❌ Group not found")
         return jsonify({"error": "Group not found"}), 404
-
-    print(f"🧠 Group Found: ID {group.id}")
-    print(f"   Current Aliases: {group.aliases}")
 
     if not isinstance(group.aliases, list):
         group.aliases = list(group.aliases)
 
+    alias_lower = alias.strip().lower()
+
     if action == "add":
+        # Check for duplicates in other groups
+        other_groups = CompanyGroup.query.filter(CompanyGroup.id != group_id).all()
+        for other in other_groups:
+            if any(a.lower() == alias_lower for a in other.aliases):
+                return jsonify({"error": f"Alias '{alias}' already exists in another group"}), 400
+
         if alias not in group.aliases:
             group.aliases.append(alias)
-            print(f"✅ Alias added → {alias}")
         else:
-            print(f"⚠️ Alias already exists → {alias}")
-            return jsonify({"error": "Alias already exists"}), 400
+            return jsonify({"error": "Alias already exists in this group"}), 400
 
     elif action == "remove":
         if alias in group.aliases:
             group.aliases.remove(alias)
-            print(f"🗑 Alias removed → {alias}")
         else:
-            print(f"⚠️ Alias not found → {alias}")
-            return jsonify({"error": "Alias not found"}), 400
-
+            return jsonify({"error": "Alias not found in this group"}), 400
     else:
-        print("❌ Invalid action")
         return jsonify({"error": "Invalid action"}), 400
 
-    # 🔧 Force SQLAlchemy to track list changes
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(group, "aliases")
 
-    print(f"💾 Updated Aliases: {group.aliases}")
     db.session.commit()
-    print("✅ DB Commit Successful")
-
     return jsonify({"message": f"Alias {action}ed"}), 200
+
 
 
 

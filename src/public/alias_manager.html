@@ -172,9 +172,11 @@
             input.value = "";
             fetchGroups();
           } else {
-            alert("❌ Failed to create group");
+            const error = await res.json();
+            alert(`❌ ${error.error || "Failed to create group"}`);
           }
         }
+
 
     async function addAlias(groupId) {
       const input = document.getElementById(`add-alias-${groupId}`);

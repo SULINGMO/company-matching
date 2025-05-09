@@ -396,15 +396,30 @@
           <label
             >LinkedIn File (optional): <input type="file" name="linkedin"
           /></label>
-          <button type="submit">Submit</button>
-          <button id="downloadMatchedBtn" type="button" disabled>
-            Download Matched Excel
-          </button>
-          <button id="downloadUnmatchedBtn" type="button" disabled>
-            Download Unmatched Excel
-          </button>
+          <div
+            id="buttonGroup"
+            style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px"
+          >
+            <button type="submit">Submit</button>
+            <button
+              id="downloadMatchedBtn"
+              type="button"
+              disabled
+              style="display: none"
+            >
+              Download Matched Excel
+            </button>
+            <button
+              id="downloadUnmatchedBtn"
+              type="button"
+              disabled
+              style="display: none"
+            >
+              Download Unmatched Excel
+            </button>
+          </div>
         </form>
-        <div class="upload-guidelines" id="uploadGuidelines">
+        <div class="upload-guidelines before-upload" id="uploadGuidelines">
           <h3>Before Uploading</h3>
           <p>Make sure the column names are standardised:</p>
           <ul>
@@ -544,6 +559,7 @@
         }
 
         const { matched, unmatched } = await response.json();
+
         if (!matched || matched.length === 0) {
           showPopup("No matched results found.", "info");
           return;
@@ -551,8 +567,11 @@
 
         matchedBtn.disabled = false;
         unmatchedBtn.disabled = unmatched && unmatched.length === 0;
+        document.getElementById("downloadMatchedBtn").style.display =
+          "inline-flex";
+        document.getElementById("downloadUnmatchedBtn").style.display =
+          "inline-flex";
 
-        // ✅ Add this here
         document.getElementById("searchBar").style.display = "flex";
         document.getElementById("columnFilterWrapper").style.display = "flex";
 

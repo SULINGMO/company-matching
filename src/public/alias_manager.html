@@ -51,13 +51,37 @@
       color: #ffd1d1;
     }
 
+    .card-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card-grid .card {
+      flex: 1 1 calc(50% - 20px); /* Two cards per row with gap */
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 768px) {
+      .card-grid .card {
+        flex: 1 1 100%;
+      }
+    }
+
     .card {
       background-color: white;
       border: 1px solid #ddd;
       padding: 20px;
       border-radius: 10px;
-      margin-bottom: 20px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      width: calc(50% - 10px);
+    }
+
+    @media (max-width: 768px) {
+      .card {
+        width: 100%;
+      }
     }
 
     .alias-list {
@@ -109,19 +133,40 @@
 
   <h2>Alias Group Manager</h2>
 
-  <div class="card">
+  <div class="card" style="margin-bottom: 30px;">
     <h3>Create New Alias Group</h3>
     <input type="text" id="newAlias" placeholder="Alias 1, Alias 2, ..." />
     <button onclick="createGroup()">Create Group</button>
   </div>
 
-  <div id="aliasGroups"></div>
+  <div style="margin-bottom: 20px;">
+    <label for="sortOption"><strong>Sort groups by:</strong></label>
+    <select id="sortOption" onchange="fetchGroups()">
+      <option value="count">Alias count (fewest → most)</option>
+      <option value="alpha">Alphabetical (first alias)</option>
+    </select>
+  </div>
+
+  <div id="aliasGroupGrid" class="card-grid"></div>
 
   <script>
     async function fetchGroups() {
       const res = await fetch("/api/aliases");
       const data = await res.json();
-      const container = document.getElementById("aliasGroups");
+
+      const sortOption = document.getElementById("sortOption")?.value;
+
+      if (sortOption === "alpha") {
+        data.sort((a, b) => {
+          const aFirst = (a.aliases[0] || "").toLowerCase();
+          const bFirst = (b.aliases[0] || "").toLowerCase();
+          return aFirst.localeCompare(bFirst);
+        });
+      } else {
+        data.sort((a, b) => a.aliases.length - b.aliases.length);
+      }
+
+      const container = document.getElementById("aliasGroupGrid");
       container.innerHTML = "";
 
       data.forEach((group) => {
@@ -129,8 +174,10 @@
         card.className = "card";
 
         const id = group.id;
+        const title = group.aliases[0] || `Group ${id}`;
+
         card.innerHTML = `
-          <h4>Group ID: ${id}</h4>
+          <h4><strong>${title}</strong></h4>
           <div class="alias-list">
             ${group.aliases.map(alias => `
               <span>${alias}
@@ -146,7 +193,6 @@
         container.appendChild(card);
       });
 
-      // Bind remove alias buttons after rendering
       document.querySelectorAll('.remove-alias-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.dataset.id;
@@ -156,27 +202,26 @@
       });
     }
 
-      async function createGroup() {
-          const input = document.getElementById("newAlias");
-          const aliases = input.value.split(",").map(s => s.trim()).filter(Boolean);
-          if (aliases.length === 0) return alert("Please enter at least one alias");
+    async function createGroup() {
+      const input = document.getElementById("newAlias");
+      const aliases = input.value.split(",").map(s => s.trim()).filter(Boolean);
+      if (aliases.length === 0) return alert("Please enter at least one alias");
 
-          const res = await fetch("/api/aliases", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ aliases }),
-          });
+      const res = await fetch("/api/aliases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aliases }),
+      });
 
-          if (res.ok) {
-            alert("✅ New group created successfully");
-            input.value = "";
-            fetchGroups();
-          } else {
-            const error = await res.json();
-            alert(`❌ ${error.error || "Failed to create group"}`);
-          }
-        }
-
+      if (res.ok) {
+        alert("✅ New group created successfully");
+        input.value = "";
+        fetchGroups();
+      } else {
+        const error = await res.json();
+        alert(`❌ ${error.error || "Failed to create group"}`);
+      }
+    }
 
     async function addAlias(groupId) {
       const input = document.getElementById(`add-alias-${groupId}`);

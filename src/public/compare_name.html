@@ -432,7 +432,7 @@
         <tbody id="resultsBody"></tbody>
       </table>
     </div>
-    <div id="actionButtons">
+    <div id="actionButtons" style="display: none">
       <button
         id="confirmAllBtn"
         class="confirm-btn"
@@ -499,6 +499,7 @@
           if (response.ok) {
             const results = await response.json();
             const guide = document.getElementById("uploadGuidelines");
+            document.getElementById("actionButtons").style.display="flex"
             guide.classList.remove("before-upload");
             guide.classList.add("after-upload");
 

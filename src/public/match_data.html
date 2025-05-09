@@ -6,20 +6,80 @@
     <style>
       :root {
         --aibp-red: #a51916;
-        --aibp-cream: #fdfaf6;
+        --aibp-cream: #f6f8fa;
         --aibp-dark: #2c2c2c;
-        --aibp-light-gray: #f5f5f5;
+        --aibp-light-gray: #f9fafc;
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #fdfaf6;
-        color: #2c2c2c;
-        margin: 20px;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--aibp-cream);
+        color: var(--aibp-dark);
+        margin: 0;
+        padding: 0;
       }
 
+      /* Navbar */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .navbar-brand {
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--aibp-red);
+      }
+
+      .navbar-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .navbar-links a {
+        color: #2c2c2c;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .navbar-links a:hover {
+        background-color: var(--aibp-light-gray);
+        color: var(--aibp-red);
+      }
+
+      /* Heading */
       h2 {
-        color: #a51916;
+        color: black;
+        margin: 30px 0 20px;
+        text-align: center;
+      }
+
+      /* Upload section */
+      .upload-center-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 0;
+      }
+
+      .form-instruction-wrapper {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 1200px;
       }
 
       form {
@@ -28,93 +88,286 @@
         padding: 20px;
         border-radius: 10px;
         max-width: 600px;
+        width: 100%;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        flex: 1 1 400px;
       }
 
       label {
         display: block;
         margin-bottom: 10px;
-      }
-
-      input[type="file"] {
-        margin-top: 5px;
-        padding: 6px;
-      }
-
-      button {
-        margin-top: 10px;
-        padding: 10px 20px;
-        background-color: #a51916;
-        color: white;
-        font-weight: bold;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background-color: #831414;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 30px;
-        background-color: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-      }
-
-      th,
-      td {
-        padding: 12px;
-        border: 1px solid #ddd;
         text-align: left;
       }
 
-      th {
+      input[type="file"] {
+        font-family: inherit;
+        font-size: 14px;
+        padding: 6px;
+        border: none;
+        background: none;
+        color: #333;
+      }
+
+      input[type="file"]::file-selector-button,
+      input[type="file"]::-webkit-file-upload-button {
+        background-color: var(--button-bg, #ffffff);
+        color: #a51916;
+        border: 1px solid #a51916;
+        border-radius: 6px;
+        padding: 6px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s ease, color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      input[type="file"]::file-selector-button:hover,
+      input[type="file"]::-webkit-file-upload-button:hover {
+        background-color: #f2dcdc;
+        border-color: #831414;
+        color: #831414;
+      }
+      /* Guidelines Card */
+      .upload-guidelines {
+        background-color: white;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 300px;
+        flex: 1 1 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        font-size: 14px;
+        color: #333;
+        line-height: 1.7;
+      }
+
+      .upload-guidelines h3 {
+        margin-top: 0;
+        color: #a51916;
+        font-size: 16px;
+      }
+
+      .upload-guidelines code {
+        background-color: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: "Courier New", monospace;
+      }
+      /* Buttons */
+      button {
+        background-color: white;
+        color: #a51916;
+        border: 2px solid #a51916;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        margin-top: 10px;
+        margin-right: 8px;
+      }
+
+      button:hover {
         background-color: #a51916;
         color: white;
       }
 
-      tr:nth-child(even) {
-        background-color: #f5f5f5;
+      /* Table */
+      table {
+        margin: 30px auto;
+        width: 90%;
+        max-width: 1200px;
+        border-collapse: collapse;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
       }
-      .navbar {
-        background-color: var(--aibp-red);
-        padding: 12px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
+
+      th {
+        background-color: #eef1f4;
+        color: #1a1a1a;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #dcdfe3;
+        text-align: left;
+      }
+
+      td {
+        background-color: #ffffff;
+        color: #2c2c2c;
+        font-size: 14px;
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      tr:nth-child(even) td {
+        background-color: #f7f9fb;
+      }
+
+      tr:hover td {
+        background-color: #edf3f8;
+      }
+
+      /* Search bar styling */
+      #searchBar input[type="text"] {
+        padding: 10px;
+        width: 220px;
+        margin-right: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .form-instruction-wrapper {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        form {
+          width: 90%;
+          max-width: none;
+        }
+
+        table {
+          width: 95%;
+        }
+      }
+
+      /* Popup styling */
+      .popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        font-size: 16px;
+        color: #2c2c2c;
+        max-width: 90%;
+        width: 400px;
+        text-align: center;
+        display: none;
+      }
+
+      .popup.info {
+        border: 2px solid #a51916;
+        background-color: #fff7f7;
+      }
+
+      .popup.error {
+        border: 2px solid #c0392b;
+        background-color: #fdecea;
+      }
+
+      .popup-content::before {
+        font-size: 20px;
+        margin-right: 6px;
+      }
+
+      .popup.info .popup-content::before {
+        content: "ℹ️";
+      }
+
+      .popup.error .popup-content::before {
+        content: "❌";
+      }
+      .search-filter-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 30px auto;
+        max-width: 90%;
+      }
+
+      .search-filter-wrapper input[type="text"] {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #2b4c6f;
+        font-family: inherit;
+        width: 220px;
+        background-color: #ffffff;
+        color: #2b4c6f;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .search-filter-wrapper input[type="text"]:focus {
+        border-color: #2b4c6f;
+        box-shadow: 0 0 0 2px #e8f0fa;
+        outline: none;
+      }
+
+      .dropdown-wrapper {
+        position: relative;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10;
       }
 
-      .navbar-brand {
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
+      .dropdown-toggle {
+        padding: 10px 14px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #2b4c6f;
+        background-color: #ffffff;
+        color: #2b4c6f;
+        font-family: inherit;
+        cursor: pointer;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease,
+          background-color 0.2s ease;
       }
 
-      .navbar-links a {
-        color: white;
-        text-decoration: none;
-        margin-left: 20px;
-        font-weight: 500;
-        transition: color 0.2s ease;
+      .dropdown-toggle:hover,
+      .dropdown-toggle:focus {
+        border-color: #2b4c6f;
+        box-shadow: 0 0 0 2px #e8f0fa;
+        color: #2b4c6f;
+        background-color: #f5f9fc;
+        outline: none;
       }
 
-      .navbar-links a:hover {
-        color: #ffd1d1; /* lighter shade on hover */
+      .dropdown-menu {
+        position: absolute;
+        top: 110%;
+        background-color: #ffffff;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        min-width: 220px;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .dropdown-wrapper.show .dropdown-menu {
+        display: flex;
+      }
+
+      .dropdown-menu label {
+        font-size: 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        color: #2c2c2c;
       }
     </style>
   </head>
 
   <body>
     <nav class="navbar">
-      <div class="navbar-brand" >AIBP Match Dashboard</div>
+      <div class="navbar-brand">AIBP Match Dashboard</div>
       <div class="navbar-links">
         <a href="/compare">Compare Name</a>
         <a href="/match">Match Data</a>
@@ -123,58 +376,68 @@
         <a href="/alias-manager">Alias Manager</a>
       </div>
     </nav>
-    <h2>Upload Files for Company Data Matching</h2>
-    <form id="uploadForm" enctype="multipart/form-data">
-      <label
-        >Speaker File (required): <input type="file" name="speaker" required
-      /></label>
-      <label
-        >Contact File (optional): <input type="file" name="contact"
-      /></label>
-      <label
-        >Account File (optional): <input type="file" name="account"
-      /></label>
-      <label
-        >Address File (optional): <input type="file" name="address"
-      /></label>
-      <label
-        >LinkedIn File (optional): <input type="file" name="linkedin"
-      /></label>
-      <button type="submit">Submit</button>
-      <button id="downloadMatchedBtn" type="button" disabled>
-        Download Matched Excel
-      </button>
-      <button id="downloadUnmatchedBtn" type="button" disabled>
-        Download Unmatched Excel
-      </button>
-    </form>
-    <div
-      id="searchBar"
-      style="margin-top: 30px; display: none; text-align: center"
-    >
-      <input
-        type="text"
-        id="searchName"
-        placeholder="Search by name"
-        style="
-          padding: 10px;
-          width: 220px;
-          margin-right: 10px;
-          border-radius: 5px;
-          border: 1px solid #ccc;
-        "
-      />
-      <input
-        type="text"
-        id="searchTitle"
-        placeholder="Search by job title"
-        style="
-          padding: 10px;
-          width: 220px;
-          border-radius: 5px;
-          border: 1px solid #ccc;
-        "
-      />
+    <div class="upload-center-wrapper">
+      <h2>Upload Files for Company Data Matching</h2>
+      <div class="form-instruction-wrapper">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <label
+            >Speaker File (required):
+            <input type="file" name="speaker" required
+          /></label>
+          <label
+            >Contact File (optional): <input type="file" name="contact"
+          /></label>
+          <label
+            >Account File (optional): <input type="file" name="account"
+          /></label>
+          <label
+            >Address File (optional): <input type="file" name="address"
+          /></label>
+          <label
+            >LinkedIn File (optional): <input type="file" name="linkedin"
+          /></label>
+          <button type="submit">Submit</button>
+          <button id="downloadMatchedBtn" type="button" disabled>
+            Download Matched Excel
+          </button>
+          <button id="downloadUnmatchedBtn" type="button" disabled>
+            Download Unmatched Excel
+          </button>
+        </form>
+        <div class="upload-guidelines" id="uploadGuidelines">
+          <h3>Before Uploading</h3>
+          <p>Make sure the column names are standardised:</p>
+          <ul>
+            <li>
+              For <strong>Speaker</strong>, <strong>Address</strong>, and
+              <strong>LinkedIn</strong> files: use <code>Company</code>
+            </li>
+            <li>
+              For <strong>Contact</strong> and <strong>Account</strong> files:
+              use
+              <code>Account Name</code>
+            </li>
+            <li>
+              <em>Case sensitivity matters</em> (e.g., <code>company</code> ≠
+              <code>Company</code>)
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="search-filter-wrapper" id="searchBar" style="display: none">
+      <input type="text" id="searchName" placeholder="Search by name" />
+      <input type="text" id="searchTitle" placeholder="Search by job title" />
+      <div
+        class="dropdown-wrapper"
+        id="columnFilterWrapper"
+        style="display: none"
+      >
+        <button class="dropdown-toggle" onclick="toggleDropdown()">
+          🔽 Column Filter
+        </button>
+        <div class="dropdown-menu" id="columnFilterMenu"></div>
+      </div>
     </div>
 
     <table id="resultTable" style="display: none">
@@ -183,6 +446,47 @@
     </table>
 
     <script>
+      function toggleDropdown() {
+        const wrapper = document.getElementById("columnFilterWrapper");
+        wrapper.classList.toggle("show");
+      }
+
+      function toggleColumnVisibility(event) {
+        const colIndex = event.target.dataset.colIndex;
+        const table = document.getElementById("resultTable");
+
+        Array.from(table.rows).forEach((row) => {
+          if (row.cells[colIndex]) {
+            row.cells[colIndex].style.display = event.target.checked
+              ? ""
+              : "none";
+          }
+        });
+      }
+
+      function showPopup(message, type = "info", duration = 1000) {
+        const popup = document.getElementById("popupMessage");
+        const text = document.getElementById("popupText");
+
+        // Reset classes
+        popup.className = "popup " + type;
+
+        text.innerText = message;
+        popup.style.display = "block";
+
+        setTimeout(() => {
+          popup.style.display = "none";
+        }, duration);
+      }
+      document.querySelectorAll('input[type="file"]').forEach((input) => {
+        input.addEventListener("change", function () {
+          const hasFile = this.files.length > 0;
+          this.style.setProperty(
+            "--button-bg",
+            hasFile ? "#f2dcdc" : "#ffffff"
+          );
+        });
+      });
       function applyFilters() {
         const nameQuery = document
           .getElementById("searchName")
@@ -235,25 +539,28 @@
         });
 
         if (!response.ok) {
-          alert("Error processing match data.");
+          showPopup("Error processing match data.", "error");
           return;
         }
 
         const { matched, unmatched } = await response.json();
         if (!matched || matched.length === 0) {
-          alert("No matched results found.");
+          showPopup("No matched results found.", "info");
           return;
         }
 
         matchedBtn.disabled = false;
         unmatchedBtn.disabled = unmatched && unmatched.length === 0;
 
+        // ✅ Add this here
+        document.getElementById("searchBar").style.display = "flex";
+        document.getElementById("columnFilterWrapper").style.display = "flex";
+
         const table = document.getElementById("resultTable");
         const headers = document.getElementById("resultHeaders");
         const body = document.getElementById("resultBody");
 
         table.style.display = "table";
-        document.getElementById("searchBar").style.display = "block";
         headers.innerHTML = "";
         body.innerHTML = "";
 
@@ -269,6 +576,27 @@
         });
         headers.appendChild(headerRow);
 
+        const filterWrapper = document.getElementById("columnFilterWrapper");
+        const filterMenu = document.getElementById("columnFilterMenu");
+
+        filterMenu.innerHTML = "";
+        filterWrapper.style.display = "flex";
+
+        columns.forEach((col, idx) => {
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = true;
+          checkbox.dataset.colIndex = idx;
+          checkbox.addEventListener("change", toggleColumnVisibility);
+
+          const label = document.createElement("label");
+          label.appendChild(checkbox);
+          label.append(" " + col);
+
+          filterMenu.appendChild(label);
+        });
+
+        // ✅ THIS MUST BE INSIDE THE EVENT LISTENER
         matched.forEach((row) => {
           const tr = document.createElement("tr");
           columns.forEach((col) => {
@@ -283,7 +611,7 @@
 
       matchedBtn.addEventListener("click", async function () {
         if (!cachedFormData) {
-          alert("Submit the form before downloading.");
+          showPopup("Submit the form before downloading.", "info");
           return;
         }
 
@@ -297,7 +625,7 @@
         });
 
         if (!response.ok) {
-          alert("Failed to download matched Excel.");
+          showPopup("Failed to download matched Excel.", "error");
           return;
         }
 
@@ -316,7 +644,7 @@
         const response = await fetch("/download_unmatched");
 
         if (!response.ok) {
-          alert("Failed to download unmatched Excel.");
+          showPopup("Failed to download unmatched Excel.", "error");
           return;
         }
 

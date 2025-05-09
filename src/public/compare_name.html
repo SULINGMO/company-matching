@@ -7,32 +7,94 @@
     <style>
       :root {
         --aibp-red: #a51916;
-        --aibp-cream: #fdfaf6;
+        --aibp-cream: #f6f8fa;
         --aibp-dark: #2c2c2c;
-        --aibp-light-gray: #f5f5f5;
+        --aibp-light-gray: #f9fafc;
       }
 
       /* Base layout */
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background-color: var(--aibp-cream);
         color: var(--aibp-dark);
-        margin: 20px;
+        margin: 0;
+        padding: 0;
       }
 
-      /* Headings */
-      h2 {
+      /* Navbar */
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .navbar-brand {
+        font-size: 20px;
+        font-weight: bold;
         color: var(--aibp-red);
       }
 
-      /* Upload form */
+      .navbar-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .navbar-links a {
+        color: #2c2c2c;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .navbar-links a:hover {
+        background-color: var(--aibp-light-gray);
+        color: var(--aibp-red);
+      }
+
+      /* Title */
+      h2 {
+        color: black;
+        margin: 30px 0 20px;
+        text-align: center;
+      }
+
+      /* Container */
+      .upload-center-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 0;
+      }
+
+      /* Form + Instruction layout */
+      .form-instruction-wrapper {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 1200px;
+      }
+
+      /* Upload Form */
       form {
         background-color: white;
         border: 1px solid #ddd;
         padding: 20px;
         border-radius: 10px;
-        max-width: 600px;
+        max-width: 500px;
+        width: 100%;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        flex: 1 1 400px;
       }
 
       label {
@@ -40,129 +102,284 @@
         margin-bottom: 10px;
       }
 
+      /* File input */
       input[type="file"] {
-        margin-top: 5px;
+        font-family: inherit;
+        font-size: 14px;
         padding: 6px;
+        border: none;
+        background: none;
+        color: #333;
       }
 
-      /* Buttons */
-      button[type="submit"],
-      .confirm-btn,
-      .unconfirm-btn {
-        background-color: var(--aibp-red);
-        color: white;
-        border: none;
-        padding: 10px 20px;
+      /* File button only */
+      input[type="file"]::file-selector-button,
+      input[type="file"]::-webkit-file-upload-button {
+        background-color: var(--button-bg, #ffffff);
+        color: #a51916;
+        border: 1px solid #a51916;
         border-radius: 6px;
+        padding: 6px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s ease, color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      input[type="file"]::file-selector-button:hover,
+      input[type="file"]::-webkit-file-upload-button:hover {
+        background-color: #f2dcdc;
+        border-color: #831414;
+        color: #831414;
+      }
+
+      /* Guidelines Card */
+      .upload-guidelines {
+        background-color: white;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 300px;
+        flex: 1 1 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        font-size: 14px;
+        color: #333;
+        line-height: 1.7;
+      }
+
+      .upload-guidelines h3 {
+        margin-top: 0;
+        color: #a51916;
+        font-size: 16px;
+      }
+
+      .upload-guidelines code {
+        background-color: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: "Courier New", monospace;
+      }
+      /* Default: before upload */
+      .upload-guidelines.before-upload {
+        border: 1px solid #a51916; /* Red outline */
+      }
+
+      /* After upload */
+      .upload-guidelines.after-upload {
+        border: 1px solid #0e7c1f; /* Green or other business tone */
+      }
+
+      /* Upload Button */
+      button[type="submit"] {
+        background-color: white;
+        color: #a51916;
+        border: 2px solid #a51916;
+        border-radius: 6px;
+        padding: 10px 20px;
         font-weight: bold;
         cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
-      button[type="submit"]:hover,
-      .confirm-btn:hover {
-        background-color: #831414;
+      button[type="submit"]:hover {
+        background-color: #a51916;
+        color: white;
       }
 
-      .unconfirm-btn {
-        background-color: #666;
-      }
-
-      .unconfirm-btn:hover {
-        background-color: #444;
-      }
-
-      button:disabled {
-        background-color: #ccc !important;
-        cursor: not-allowed;
-      }
-
-      /* Table */
+      /* Business-styled table */
       table {
-        width: 100%;
+        margin: 30px auto;
+        width: 50%;
+        max-width: 1200px;
         border-collapse: collapse;
-        margin-top: 30px;
-        background-color: white;
+        background-color: #ffffff;
         border-radius: 10px;
         overflow: hidden;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
       }
 
-      th,
-      td {
-        padding: 12px;
-        border: 1px solid #ddd;
+      /* Header: subtle steel grey with dark text */
+      th {
+        background-color: #eef1f4; /* soft grey-blue */
+        color: #1a1a1a; /* near-black for contrast */
+        font-weight: 600;
+        font-size: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #dcdfe3;
         text-align: left;
       }
 
-      th {
-        background-color: var(--aibp-red);
-        color: white;
+      /* Table body rows */
+      td {
+        background-color: #ffffff;
+        color: #2c2c2c;
+        font-size: 14px;
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
       }
 
-      tr:nth-child(even) {
-        background-color: var(--aibp-light-gray);
+      /* Zebra striping for better readability */
+      tr:nth-child(even) td {
+        background-color: #f7f9fb;
       }
 
-      /* Highlighting states */
+      /* Hover effect */
+      tr:hover td {
+        background-color: #edf3f8;
+      }
+
+      /* Left-align first column, center others optionally */
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      /* Match Highlight Styles */
       .manual-added {
-        background-color: #eaf4ea !important;
+        background-color: #e0f3e0 !important;
       }
 
       .confirmed-row {
-        background-color: #eaf4ea !important;
+        background-color: #e0f3e0 !important;
       }
 
       .highlight-100 {
-        background-color: #fffbe6 !important;
+        background-color: #fff9e0 !important;
       }
 
       .highlight-200 {
-        background-color: #b5c9e3 !important;
+        background-color: #dbe7f1 !important;
       }
 
-      /* Checkbox styling */
+      /* Checkbox style */
       input[type="checkbox"] {
         margin-right: 6px;
+        vertical-align: middle;
+        transform: scale(1.2);
       }
 
       input[type="checkbox"]:disabled {
         opacity: 0.6;
         cursor: not-allowed;
       }
-      .navbar {
-        background-color: var(--aibp-red);
-        padding: 12px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
+
+      /* Buttons below the table */
+      #actionButtons {
+        margin: 20px auto;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        gap: 12px;
+        justify-content: center;
+      }
+      /* Confirm All – soft teal tone */
+      .confirm-btn {
+        background-color: white;
+        color: #2c6e65; /* soft teal text */
+        border: 2px solid #2c6e65;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
-      .navbar-brand {
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
+      .confirm-btn:hover {
+        background-color: #d6ece8; /* pale teal background */
+        color: #2c6e65;
       }
 
-      .navbar-links a {
-        color: white;
-        text-decoration: none;
-        margin-left: 20px;
-        font-weight: 500;
-        transition: color 0.2s ease;
+      /* Unconfirm All – soft beige / sand tone */
+      .unconfirm-btn {
+        background-color: white;
+        color: #9c5f19; /* warm neutral */
+        border: 2px solid #9c5f19;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
 
-      .navbar-links a:hover {
-        color: #ffd1d1; /* lighter shade on hover */
+      .unconfirm-btn:hover {
+        background-color: #fce9d5; /* light warm tan */
+        color: #9c5f19;
+      }
+
+      /* Responsive tweak */
+      @media (max-width: 768px) {
+        .form-instruction-wrapper {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        form,
+        .upload-guidelines {
+          width: 90%;
+          max-width: none;
+        }
+
+        table {
+          width: 95%;
+        }
+      }
+      /* Custom popup message styling */
+      .popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        font-size: 16px;
+        color: #2c2c2c;
+        max-width: 90%;
+        width: 400px;
+        text-align: center;
+      }
+
+      /* Default style (info) */
+      .popup.info {
+        border: 2px solid #a51916;
+        background-color: #fff7f7;
+      }
+
+      .popup.success {
+        border: 2px solid #2c6e65;
+        background-color: #e6f3f1;
+      }
+
+      .popup.error {
+        border: 2px solid #c0392b;
+        background-color: #fdecea;
+      }
+
+      .popup-content::before {
+        font-size: 20px;
+        margin-right: 6px;
+      }
+
+      .popup.info .popup-content::before {
+        content: "ℹ️";
+      }
+
+      .popup.success .popup-content::before {
+        content: "✅";
+      }
+
+      .popup.error .popup-content::before {
+        content: "❌";
       }
     </style>
   </head>
 
   <body>
     <nav class="navbar">
-      <div class="navbar-brand" >AIBP Match Dashboard</div>
+      <div class="navbar-brand">AIBP Match Dashboard</div>
       <div class="navbar-links">
         <a href="/compare">Compare Name</a>
         <a href="/match">Match Data</a>
@@ -171,31 +388,92 @@
         <a href="/alias-manager">Alias Manager</a>
       </div>
     </nav>
-    <h2>Upload Company Lists</h2>
-    <form id="uploadForm" enctype="multipart/form-data">
-      <label>Speaker List: <input type="file" name="speaker" required /></label>
-      <label>Account List: <input type="file" name="account" /></label>
-      <label>Contact List: <input type="file" name="contact" /></label>
-      <label>Address List: <input type="file" name="address" /></label>
-      <label>LinkedIn List: <input type="file" name="linkedin" /></label>
-      <button type="submit">Upload</button>
-    </form>
-
-    <table id="resultTable" style="display: none">
-      <thead>
-        <tr id="resultTableHeaders"></tr>
-      </thead>
-      <tbody id="resultsBody"></tbody>
-    </table>
+    <div class="upload-center-wrapper">
+      <h2>Upload Company Lists</h2>
+      <div class="form-instruction-wrapper">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <label
+            >Speaker List: <input type="file" name="speaker" required
+          /></label>
+          <label>Account List: <input type="file" name="account" /></label>
+          <label>Contact List: <input type="file" name="contact" /></label>
+          <label>Address List: <input type="file" name="address" /></label>
+          <label>LinkedIn List: <input type="file" name="linkedin" /></label>
+          <div class="form-actions">
+            <button type="submit">Upload</button>
+          </div>
+        </form>
+        <div class="upload-guidelines before-upload" id="uploadGuidelines">
+          <h3>Before Uploading</h3>
+          <p>Make sure the column names are standardised:</p>
+          <ul>
+            <li>
+              For <strong>Speaker</strong>, <strong>Address</strong>, and
+              <strong>LinkedIn</strong> files: use <code>Company</code>
+            </li>
+            <li>
+              For <strong>Contact</strong> and <strong>Account</strong> files:
+              use
+              <code>Account Name</code>
+            </li>
+            <li>
+              <em>Case sensitivity matters</em> (e.g., <code>company</code> ≠
+              <code>Company</code>)
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table id="resultTable" style="display: none">
+        <thead>
+          <tr id="resultTableHeaders"></tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
     <div id="actionButtons">
-      <button id="confirmAllBtn" onclick="confirmAllMatches()">
+      <button
+        id="confirmAllBtn"
+        class="confirm-btn"
+        onclick="confirmAllMatches()"
+      >
         Confirm All
       </button>
-      <button id="unconfirmAllBtn" onclick="unconfirmAllMatches()">
+      <button
+        id="unconfirmAllBtn"
+        class="unconfirm-btn"
+        onclick="unconfirmAllMatches()"
+      >
         Unconfirm All
       </button>
     </div>
     <script>
+      function showPopup(message, type = "info", duration = 1000) {
+        const popup = document.getElementById("popupMessage");
+        const text = document.getElementById("popupText");
+
+        // Reset classes
+        popup.className = "popup " + type;
+
+        text.innerText = message;
+        popup.style.display = "block";
+
+        setTimeout(() => {
+          popup.style.display = "none";
+        }, duration);
+      }
+
+      document.querySelectorAll('input[type="file"]').forEach((input) => {
+        input.addEventListener("change", function () {
+          const hasFile = this.files.length > 0;
+          this.style.setProperty(
+            "--button-bg",
+            hasFile ? "#f2dcdc" : "#ffffff"
+          );
+        });
+      });
+
       document
         .getElementById("uploadForm")
         .addEventListener("submit", async function (event) {
@@ -220,10 +498,24 @@
 
           if (response.ok) {
             const results = await response.json();
+            const guide = document.getElementById("uploadGuidelines");
+            guide.classList.remove("before-upload");
+            guide.classList.add("after-upload");
+
+            guide.innerHTML = `
+    <h3>After Uploading</h3>
+    <p>Review the matched records carefully:</p>
+    <ul>
+      <li><strong>200% similarity</strong> matches are auto-confirmed.</li>
+      <li>For all other <strong>same name</strong> matches, please select and confirm them manually.</li>
+      <li>Click <em>"Confirm All"</em> after selecting relevant checkboxes.</li>
+    </ul>
+  `;
+
             updateTableHeaders(availableColumns);
             displayResults(results, availableColumns);
           } else {
-            alert("Error uploading files");
+            showPopup("Error uploading files","error");
           }
         });
 
@@ -389,7 +681,7 @@
         const requests = [];
 
         if (checkboxes.length === 0) {
-          alert("Please select at least one match to confirm.");
+          showPopup("Please select at least one match to confirm.","info");
           return;
         }
 
@@ -435,11 +727,11 @@
 
         Promise.all(requests)
           .then(() => {
-            alert("Selected matches confirmed!");
+            showPopup("Selected matches confirmed!","success");
             // ✅ Uncheck everything only once after all complete
             checkboxes.forEach((cb) => (cb.checked = false));
           })
-          .catch(() => alert("One or more confirmations failed."));
+          .catch(() => showPopup("One or more confirmations failed.","error"));
       }
 
       function unconfirmAllMatches() {
@@ -447,7 +739,7 @@
         const groupedPayloads = {}; // { speaker: { fields: [], matched_account: [], ... } }
 
         if (checkboxes.length === 0) {
-          alert("Please select at least one match to unconfirm.");
+          showPopup("Please select at least one match to unconfirm.","info");
           return;
         }
 
@@ -508,9 +800,12 @@
         });
 
         Promise.all(requests)
-          .then(() => alert("Selected matches unconfirmed!"))
-          .catch(() => alert("One or more unconfirmations failed."));
+          .then(() => showPopup("Selected matches unconfirmed!","success"))
+          .catch(() => showPopup("One or more unconfirmations failed.","error"));
       }
     </script>
+    <div id="popupMessage" class="popup" style="display: none">
+      <div class="popup-content" id="popupText"></div>
+    </div>
   </body>
 </html>

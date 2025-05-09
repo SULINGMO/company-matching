@@ -27,9 +27,6 @@ def create_app():
     app.register_blueprint(match_bp)
     app.register_blueprint(alias_bp)
     @app.route('/')
-    def home():
-        return render_template('index.html')
-    @app.route('/compare')
     def compare():
         return render_template('compare_name.html')
     @app.route('/match')

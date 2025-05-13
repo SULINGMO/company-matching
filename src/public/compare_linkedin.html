@@ -282,65 +282,73 @@
   });
 
   function displayResults(results) {
-    const fieldsToCheck = ['contact', 'address', 'linkedin_similar'];
-    const enabledFields = fieldsToCheck.filter(field =>
-      results.some(r => r[`matched_${field}`] && r[`matched_${field}`].length > 0)
-    );
+  const fieldsToCheck = ['contact', 'address', 'linkedin_similar'];
+  const enabledFields = fieldsToCheck.filter(field =>
+    results.some(r => r[`matched_${field}`] && r[`matched_${field}`].length > 0)
+  );
 
-    const headersRow = document.getElementById("resultTableHeaders");
-    headersRow.innerHTML = "<th>LinkedIn Company</th>";
+  const headersRow = document.getElementById("resultTableHeaders");
+  headersRow.innerHTML = "<th>LinkedIn Company</th>";
+  enabledFields.forEach(field => {
+    const name = field === "linkedin_similar" ? "Similar LinkedIn" : `${field.charAt(0).toUpperCase() + field.slice(1)} Match`;
+    const sim = field === "linkedin_similar" ? "LinkedIn Similarity" : `${field.charAt(0).toUpperCase() + field.slice(1)} Similarity`;
+    headersRow.innerHTML += `<th>${name}</th><th>${sim}</th>`;
+  });
+
+  const body = document.getElementById("resultsBody");
+  body.innerHTML = "";
+
+  results.forEach(res => {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${res.linkedin}</td>`;
+
     enabledFields.forEach(field => {
-      const name = field === "linkedin_similar" ? "Similar LinkedIn" : `${field.charAt(0).toUpperCase() + field.slice(1)} Match`;
-      const sim = field === "linkedin_similar" ? "LinkedIn Similarity" : `${field.charAt(0).toUpperCase() + field.slice(1)} Similarity`;
-      headersRow.innerHTML += `<th>${name}</th><th>${sim}</th>`;
-    });
+      const matches = res[`matched_${field}`];
+      if (!matches || matches.length === 0) {
+        row.innerHTML += "<td></td><td></td>";
+        return;
+      }
 
-    const body = document.getElementById("resultsBody");
-    body.innerHTML = "";
-
-    results.forEach(res => {
-      const row = document.createElement("tr");
-      row.innerHTML = `<td>${res.linkedin}</td>`;
-
-      enabledFields.forEach(field => {
-        const matches = res[`matched_${field}`];
-        if (!matches || matches.length === 0) {
-          row.innerHTML += "<td></td><td></td>";
-          return;
-        }
-
-        if (field === "linkedin_similar") {
-          let names = "<td>", sims = "<td>";
-          matches.forEach(match => {
-            const cls = getHighlightClass(match);
-            names += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-              <input type="checkbox" class="match-checkbox"
-                     data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
-              ${match.name}</div>`;
-            sims += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
-              ${(match.similarity * 100).toFixed(0)}%</div>`;
-          });
-          row.innerHTML += names + "</td>" + sims + "</td>";
-        } else {
-          const match = matches[0];
+      if (field === "linkedin_similar") {
+        let names = "<td>", sims = "<td>";
+        matches.forEach(match => {
           const cls = getHighlightClass(match);
-          row.innerHTML += `
-            <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-              <input type="checkbox" class="match-checkbox"
-                     data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
-              ${match.name}</div></td>
-            <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
-              ${(match.similarity * 100).toFixed(0)}%</div></td>
-          `;
-        }
-      });
+          const safeId = `${res.linkedin}-${field}-${match.name}`.replace(/\s+/g, "_").toLowerCase();
 
-      body.appendChild(row);
+          names += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="checkbox" class="match-checkbox"
+                   data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}"
+                   data-id="${safeId}" />
+            ${match.name}</div>`;
+
+          sims += `<div class="${cls}" data-id="${safeId}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
+            ${(match.similarity * 100).toFixed(0)}%</div>`;
+        });
+        row.innerHTML += names + "</td>" + sims + "</td>";
+      } else {
+        const match = matches[0];
+        const cls = getHighlightClass(match);
+        const safeId = `${res.linkedin}-${field}-${match.name}`.replace(/\s+/g, "_").toLowerCase();
+
+        row.innerHTML += `
+          <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+            <input type="checkbox" class="match-checkbox"
+                   data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}"
+                   data-id="${safeId}" />
+            ${match.name}</div></td>
+          <td><div class="${cls}" data-id="${safeId}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
+            ${(match.similarity * 100).toFixed(0)}%</div></td>
+        `;
+      }
     });
 
-    document.getElementById("resultTable").style.display = "table";
-    document.getElementById("actionButtons").style.display = "flex";
-  }
+    body.appendChild(row);
+  });
+
+  document.getElementById("resultTable").style.display = "table";
+  document.getElementById("actionButtons").style.display = "flex";
+}
+
 
 function confirmAll() {
   const checkboxes = document.querySelectorAll(".match-checkbox:checked");
@@ -350,6 +358,7 @@ function confirmAll() {
     const speaker = cb.dataset.speaker;
     const type = cb.dataset.type;
     const name = cb.dataset.name;
+    const matchId = cb.dataset.id.toLowerCase();
 
     if (!grouped[speaker]) {
       grouped[speaker] = { speaker: speaker, fields: [] };
@@ -361,6 +370,18 @@ function confirmAll() {
     }
 
     grouped[speaker][`matched_${type}`].push(name);
+
+    const parent = cb.closest("div");
+    parent.classList.remove("highlight-200", "highlight-100");
+    parent.classList.add("highlight-100");
+
+    const percentBox = document.querySelector(`div[data-id="${matchId}"]`);
+    if (percentBox) {
+      percentBox.classList.remove("highlight-200", "highlight-100");
+      percentBox.classList.add("highlight-100");
+    }
+
+    cb.checked = false;
   });
 
   const promises = Object.values(grouped).map(payload =>
@@ -368,26 +389,12 @@ function confirmAll() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).then(() => {
-      // ✅ Update color on all confirmed checkboxes
-      document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
-        const parent = cb.closest("div");
-        parent.classList.remove("highlight-200", "highlight-100");
-        parent.classList.add("highlight-100");
-
-        const percentBox = parent.parentElement.nextElementSibling?.querySelector("div");
-        if (percentBox) {
-          percentBox.classList.remove("highlight-200", "highlight-100");
-          percentBox.classList.add("highlight-100");
-        }
-
-        cb.checked = false;
-      });
     })
   );
 
   Promise.all(promises).then(() => alert("Selected matches confirmed!"));
 }
+
 
 
 
@@ -399,6 +406,7 @@ function confirmAll() {
     const speaker = cb.dataset.speaker;
     const type = cb.dataset.type;
     const name = cb.dataset.name;
+    const matchId = cb.dataset.id.toLowerCase();
 
     if (!grouped[speaker]) {
       grouped[speaker] = { speaker: speaker, fields: [] };
@@ -410,6 +418,16 @@ function confirmAll() {
     }
 
     grouped[speaker][`matched_${type}`].push(name);
+
+    const parent = cb.closest("div");
+    parent.classList.remove("highlight-100");
+
+    const percentBox = document.querySelector(`div[data-id="${matchId}"]`);
+    if (percentBox) {
+      percentBox.classList.remove("highlight-100");
+    }
+
+    cb.checked = false;
   });
 
   const promises = Object.values(grouped).map(payload =>
@@ -417,24 +435,13 @@ function confirmAll() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).then(() => {
-      // ❌ Remove color on all unchecked boxes
-      document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
-        const parent = cb.closest("div");
-        parent.classList.remove("highlight-100");
-
-        const percentBox = parent.parentElement.nextElementSibling?.querySelector("div");
-        if (percentBox) {
-          percentBox.classList.remove("highlight-100");
-        }
-
-        cb.checked = false;
-      });
     })
   );
 
   Promise.all(promises).then(() => alert("Selected matches unconfirmed!"));
 }
+
+
 
   </script>
 </body>

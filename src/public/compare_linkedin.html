@@ -393,25 +393,37 @@
     }
 
     function confirmAll() {
-      const checkboxes = document.querySelectorAll(".match-checkbox:checked");
-      const promises = [];
+    const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+    const grouped = {};
 
-      checkboxes.forEach(cb => {
-        const payload = {
-          speaker: cb.dataset.speaker,
-          fields: [cb.dataset.type],
-          [`matched_${cb.dataset.type}`]: [cb.dataset.name],
-        };
+    checkboxes.forEach(cb => {
+      const speaker = cb.dataset.speaker;
+      const type = cb.dataset.type;
+      const name = cb.dataset.name;
 
-        promises.push(fetch("/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }));
-      });
+      if (!grouped[speaker]) {
+        grouped[speaker] = { speaker: speaker, fields: [] };
+      }
 
-      Promise.all(promises).then(() => alert("Selected matches confirmed!"));
-    }
+      if (!grouped[speaker][`matched_${type}`]) {
+        grouped[speaker][`matched_${type}`] = [];
+        grouped[speaker].fields.push(type);
+      }
+
+      grouped[speaker][`matched_${type}`].push(name);
+    });
+
+    const promises = Object.values(grouped).map(payload =>
+      fetch("/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+    );
+
+    Promise.all(promises).then(() => alert("Selected matches confirmed!"));
+  }
+
 
     function unconfirmAll() {
       const grouped = {};

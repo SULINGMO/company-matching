@@ -237,11 +237,6 @@
         text-align: center;
       }
 
-      /* Match Highlight Styles */
-      .manual-added {
-        background-color: #e0f3e0 !important;
-      }
-
       .confirmed-row {
         background-color: #e0f3e0 !important;
       }
@@ -500,7 +495,7 @@
           if (response.ok) {
             const results = await response.json();
             const guide = document.getElementById("uploadGuidelines");
-            document.getElementById("actionButtons").style.display="flex"
+            document.getElementById("actionButtons").style.display = "flex";
             guide.classList.remove("before-upload");
             guide.classList.add("after-upload");
 
@@ -517,7 +512,7 @@
             updateTableHeaders(availableColumns);
             displayResults(results, availableColumns);
           } else {
-            showPopup("Error uploading files","error");
+            showPopup("Error uploading files", "error");
           }
         });
 
@@ -563,9 +558,7 @@
             let highlightClass = "";
             let backgroundColor = "";
 
-            if (item.similarity === 1) {
-              highlightClass = "manual-added"; // Green // Light Green for 100%
-            } else if (item.similarity === 2) {
+            if (item.similarity === 2) {
               highlightClass = "highlight-200"; // Light Blue for 200%
             } else if (item.fromAliasMatch) {
               highlightClass = "highlight-100"; // Yellow
@@ -636,9 +629,7 @@
               seenNames.add(item.name);
 
               let highlightClass = "";
-              if (item.similarity === 1) {
-                highlightClass = "manual-added";
-              } else if (item.similarity === 2) {
+              if (item.similarity === 2) {
                 highlightClass = "highlight-200";
               } else if (item.fromAliasMatch) {
                 highlightClass = "highlight-100";
@@ -683,7 +674,7 @@
         const requests = [];
 
         if (checkboxes.length === 0) {
-          showPopup("Please select at least one match to confirm.","info");
+          showPopup("Please select at least one match to confirm.", "info");
           return;
         }
 
@@ -704,23 +695,17 @@
             body: JSON.stringify(payload),
           }).then((response) => {
             if (response.ok) {
-              const div = cb.closest("div");
-              if (div) {
-                div.classList.remove("manual-added");
-                div.classList.add("highlight-100");
-              }
-              const similarityDiv = document.querySelector(
-                `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
-              );
-              if (similarityDiv) {
-                similarityDiv.classList.remove("manual-added");
-                similarityDiv.classList.add("highlight-100");
-              }
+              // ✅ Highlight the name cell
+              const nameDiv = cb.closest("div");
+              nameDiv?.classList.remove("highlight-200");
+              nameDiv?.classList.add("highlight-100");
 
-              if (similarityDiv) {
-                similarityDiv.classList.remove("manual-added");
-                similarityDiv.classList.add("highlight-100");
-              }
+              // ✅ Highlight the similarity cell (must be sibling in next <td>)
+              const similarityCell = nameDiv?.closest("td")?.nextElementSibling;
+              const similarityDiv = similarityCell?.querySelector("div");
+
+              similarityDiv?.classList.remove("highlight-200");
+              similarityDiv?.classList.add("highlight-100");
             }
           });
 
@@ -729,81 +714,81 @@
 
         Promise.all(requests)
           .then(() => {
-            showPopup("Selected matches confirmed!","success");
-            // ✅ Uncheck everything only once after all complete
+            showPopup("Selected matches confirmed!", "success");
             checkboxes.forEach((cb) => (cb.checked = false));
           })
-          .catch(() => showPopup("One or more confirmations failed.","error"));
+          .catch(() => showPopup("One or more confirmations failed.", "error"));
       }
-
       function unconfirmAllMatches() {
         const checkboxes = document.querySelectorAll(".match-checkbox:checked");
-        const groupedPayloads = {}; // { speaker: { fields: [], matched_account: [], ... } }
+        const groupedPayloads = {};
 
         if (checkboxes.length === 0) {
-          showPopup("Please select at least one match to unconfirm.","info");
+          showPopup("Please select at least one match to unconfirm.", "info");
           return;
         }
 
-        // Group checkboxes by speaker and type
         checkboxes.forEach((cb) => {
           const speaker = cb.getAttribute("data-speaker");
           const type = cb.getAttribute("data-type");
           const name = cb.getAttribute("data-name");
 
           if (!groupedPayloads[speaker]) {
-            groupedPayloads[speaker] = {
-              speaker: speaker,
-              fields: [],
-            };
+            groupedPayloads[speaker] = { speaker, fields: [] };
           }
 
-          const payload = groupedPayloads[speaker];
-
-          if (!payload.fields.includes(type)) {
-            payload.fields.push(type);
-            payload[`matched_${type}`] = [];
+          if (!groupedPayloads[speaker][`matched_${type}`]) {
+            groupedPayloads[speaker].fields.push(type);
+            groupedPayloads[speaker][`matched_${type}`] = [];
           }
 
-          payload[`matched_${type}`].push(name);
+          groupedPayloads[speaker][`matched_${type}`].push(name);
         });
 
-        const requests = Object.values(groupedPayloads).map((payload) => {
-          console.log("DEBUG Payload for unconfirm:", payload);
-
-          return fetch("/unconfirm", {
+        const requests = Object.values(groupedPayloads).map((payload) =>
+          fetch("/unconfirm", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           }).then((response) => {
             if (response.ok) {
-              // ✅ Clear visual highlights and uncheck boxes for this speaker
               const checkboxesToClear = document.querySelectorAll(
                 `.match-checkbox[data-speaker="${payload.speaker}"]:checked`
               );
-              checkboxesToClear.forEach((cb) => {
-                const div = cb.closest("div");
-                if (div) div.classList.remove("highlight-100");
-                const speaker = cb.getAttribute("data-speaker");
-                const type = cb.getAttribute("data-type");
-                const name = cb.getAttribute("data-name");
 
-                const similarityDiv = document.querySelector(
-                  `div[data-speaker="${speaker}"][data-type="${type}"][data-name="${name}"]`
-                );
-                if (similarityDiv) {
-                  similarityDiv.classList.remove("highlight-100");
+              checkboxesToClear.forEach((cb) => {
+                const nameDiv = cb.closest("div");
+                const simDiv = nameDiv
+                  ?.closest("td")
+                  ?.nextElementSibling?.querySelector("div");
+
+                nameDiv?.classList.remove("highlight-100", "highlight-200");
+                simDiv?.classList.remove("highlight-100", "highlight-200");
+
+                const similarityText = simDiv?.innerText
+                  ?.replace("%", "")
+                  .trim();
+                const similarity = parseFloat(similarityText) / 100;
+
+                if (similarity === 2.0) {
+                  nameDiv?.classList.add("highlight-200");
+                  simDiv?.classList.add("highlight-200");
+                } else if (similarity === 1.0) {
+                  nameDiv?.classList.add("manual-added");
+                  simDiv?.classList.add("manual-added");
                 }
 
                 cb.checked = false;
               });
             }
-          });
-        });
+          })
+        );
 
         Promise.all(requests)
-          .then(() => showPopup("Selected matches unconfirmed!","success"))
-          .catch(() => showPopup("One or more unconfirmations failed.","error"));
+          .then(() => showPopup("Selected matches unconfirmed!", "success"))
+          .catch(() =>
+            showPopup("One or more unconfirmations failed.", "error")
+          );
       }
     </script>
     <div id="popupMessage" class="popup" style="display: none">

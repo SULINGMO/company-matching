@@ -167,9 +167,7 @@
     .highlight-200 {
       background-color: #dbe7f1 !important;
     }
-    .manual-added {
-      background-color: #e0f3e0 !important;
-    }
+
     #actionButtons {
       display: none;
       justify-content: center;
@@ -253,7 +251,6 @@
   <script>
     function getHighlightClass(match) {
       if (match.similarity === 2.0) return "highlight-200";
-      else if (match.similarity === 1.0) return "manual-added";
       else if (match.fromAliasMatch) return "highlight-100";
       return "";
     }
@@ -375,12 +372,12 @@ function confirmAll() {
       // ✅ Update color on all confirmed checkboxes
       document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
         const parent = cb.closest("div");
-        parent.classList.remove("manual-added", "highlight-200", "highlight-100");
+        parent.classList.remove("highlight-200", "highlight-100");
         parent.classList.add("highlight-100");
 
         const percentBox = parent.parentElement.nextElementSibling?.querySelector("div");
         if (percentBox) {
-          percentBox.classList.remove("manual-added", "highlight-200", "highlight-100");
+          percentBox.classList.remove("highlight-200", "highlight-100");
           percentBox.classList.add("highlight-100");
         }
 

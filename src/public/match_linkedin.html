@@ -4,108 +4,270 @@
     <meta charset="UTF-8" />
     <title>LinkedIn Company Matching</title>
     <style>
+      /* company-style.css */
       :root {
         --aibp-red: #a51916;
-        --aibp-cream: #fdfaf6;
+        --aibp-cream: #f6f8fa;
         --aibp-dark: #2c2c2c;
-        --aibp-light-gray: #f5f5f5;
+        --aibp-light-gray: #f9fafc;
       }
 
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #fdfaf6;
+        font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--aibp-cream);
+        color: var(--aibp-dark);
+        margin: 0;
+        padding: 0;
+      }
+
+      .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 20px 40px;
+        border-bottom: 1px solid #eee;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      }
+
+      .navbar-brand {
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--aibp-red);
+      }
+
+      .navbar-links {
+        display: flex;
+        gap: 30px;
+      }
+
+      .navbar-links a {
         color: #2c2c2c;
-        margin: 20px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: background-color 0.2s ease, color 0.2s ease;
       }
+
+      .navbar-links a:hover {
+        background-color: var(--aibp-light-gray);
+        color: var(--aibp-red);
+      }
+
       h2 {
-        color: #a51916;
+        color: black;
+        margin: 30px 0 20px;
+        text-align: center;
       }
+
+      .upload-center-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 40px 0;
+      }
+
+      .form-instruction-wrapper {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+        max-width: 1200px;
+      }
+
       form {
         background-color: white;
         border: 1px solid #ddd;
         padding: 20px;
         border-radius: 10px;
         max-width: 600px;
+        width: 100%;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        flex: 1 1 400px;
       }
+
       label {
         display: block;
         margin-bottom: 10px;
-      }
-      input[type="file"] {
-        margin-top: 5px;
-        padding: 6px;
-      }
-      button {
-        margin-top: 10px;
-        padding: 10px 20px;
-        background-color: #a51916;
-        color: white;
-        font-weight: bold;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #831414;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 30px;
-        background-color: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
-      }
-      th,
-      td {
-        padding: 12px;
-        border: 1px solid #ddd;
         text-align: left;
       }
-      th {
+
+      input[type="file"] {
+        font-family: inherit;
+        font-size: 14px;
+        padding: 6px;
+        border: none;
+        background: none;
+        color: #333;
+      }
+
+      input[type="file"]::file-selector-button,
+      input[type="file"]::-webkit-file-upload-button {
+        background-color: var(--button-bg, #ffffff);
+        color: #a51916;
+        border: 1px solid #a51916;
+        border-radius: 6px;
+        padding: 6px 14px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s ease, color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      input[type="file"]::file-selector-button:hover,
+      input[type="file"]::-webkit-file-upload-button:hover {
+        background-color: #f2dcdc;
+        border-color: #831414;
+        color: #831414;
+      }
+
+      button {
+        background-color: white;
+        color: #a51916;
+        border: 2px solid #a51916;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        margin-top: 10px;
+        margin-right: 8px;
+      }
+
+      button:hover {
         background-color: #a51916;
         color: white;
       }
-      tr:nth-child(even) {
-        background-color: #f5f5f5;
+      /* Guidelines Card */
+      .upload-guidelines {
+        background-color: white;
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 300px;
+        flex: 1 1 400px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        font-size: 14px;
+        color: #333;
+        line-height: 1.7;
       }
 
-      .navbar {
-        background-color: var(--aibp-red);
-        padding: 12px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      .upload-guidelines h3 {
+        margin-top: 0;
+        color: #a51916;
+        font-size: 16px;
       }
 
-      .navbar-brand {
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
+      .upload-guidelines code {
+        background-color: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: "Courier New", monospace;
+      }
+      table {
+        margin: 30px auto;
+        width: 90%;
+        max-width: 1200px;
+        border-collapse: collapse;
+        background-color: #ffffff;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
       }
 
-      .navbar-links a {
-        color: white;
-        text-decoration: none;
-        margin-left: 20px;
-        font-weight: 500;
-        transition: color 0.2s ease;
+      th {
+        background-color: #eef1f4;
+        color: #1a1a1a;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 16px 20px;
+        border-bottom: 1px solid #dcdfe3;
+        text-align: left;
       }
 
-      .navbar-links a:hover {
-        color: #ffd1d1; /* lighter shade on hover */
+      td {
+        background-color: #ffffff;
+        color: #2c2c2c;
+        font-size: 14px;
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      tr:nth-child(even) td {
+        background-color: #f7f9fb;
+      }
+
+      tr:hover td {
+        background-color: #edf3f8;
+      }
+
+      @media (max-width: 768px) {
+        .form-instruction-wrapper {
+          flex-direction: column;
+          align-items: center;
+        }
+
+        form {
+          width: 90%;
+          max-width: none;
+        }
+
+        table {
+          width: 95%;
+        }
+      }
+       /* Popup styling */
+      .popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px 30px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        font-size: 16px;
+        color: #2c2c2c;
+        max-width: 90%;
+        width: 400px;
+        text-align: center;
+        display: none;
+      }
+
+      .popup.info {
+        border: 2px solid #a51916;
+        background-color: #fff7f7;
+      }
+
+      .popup.error {
+        border: 2px solid #c0392b;
+        background-color: #fdecea;
+      }
+
+      .popup-content::before {
+        font-size: 20px;
+        margin-right: 6px;
+      }
+
+      .popup.info .popup-content::before {
+        content: "ℹ️";
+      }
+
+      .popup.error .popup-content::before {
+        content: "❌";
       }
     </style>
   </head>
-
   <body>
     <nav class="navbar">
-      <div class="navbar-brand" >AIBP Match Dashboard</div>
+      <div class="navbar-brand">AIBP Match Dashboard</div>
       <div class="navbar-links">
         <a href="/">Compare Name</a>
         <a href="/match">Match Data</a>
@@ -114,26 +276,64 @@
         <a href="/alias-manager">Alias Manager</a>
       </div>
     </nav>
-    <h2>Upload LinkedIn File to Match Against Company Data</h2>
 
-    <form id="uploadForm" enctype="multipart/form-data">
-      <label
-        >LinkedIn File (required): <input type="file" name="linkedin" required
-      /></label>
-      <label
-        >Contact File (optional): <input type="file" name="contact"
-      /></label>
-      <label
-        >Address File (optional): <input type="file" name="address"
-      /></label>
-      <button type="submit">Submit</button>
-      <button id="downloadMatchedBtn" type="button" disabled>
-        Download Matched
-      </button>
-      <button id="downloadUnmatchedBtn" type="button" disabled>
-        Download Unmatched
-      </button>
-    </form>
+    <div class="upload-center-wrapper">
+      <h2>Upload LinkedIn File to Match Against Company Data</h2>
+      <div class="form-instruction-wrapper">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <label
+            >LinkedIn File (required):
+            <input type="file" name="linkedin" required
+          /></label>
+          <label
+            >Contact File (optional): <input type="file" name="contact"
+          /></label>
+          <label
+            >Address File (optional): <input type="file" name="address"
+          /></label>
+          <div
+            id="buttonGroup"
+            style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px"
+          >
+            <button type="submit">Submit</button>
+            <button
+              id="downloadMatchedBtn"
+              type="button"
+              disabled
+              style="display: none"
+            >
+              Download Matched Excel
+            </button>
+            <button
+              id="downloadUnmatchedBtn"
+              type="button"
+              disabled
+              style="display: none"
+            >
+              Download Unmatched Excel
+            </button>
+          </div>
+        </form>
+        <div class="upload-guidelines before-upload" id="uploadGuidelines">
+          <h3>Before Uploading</h3>
+          <p>Make sure the column names are standardised:</p>
+          <ul>
+            <li>
+              For <strong>Address</strong>, and <strong>LinkedIn</strong> files:
+              use <code>Company</code>
+            </li>
+            <li>
+              For <strong>Contact</strong> file: use
+              <code>Account Name</code>
+            </li>
+            <li>
+              <em>Case sensitivity matters</em> (e.g., <code>company</code> ≠
+              <code>Company</code>)
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
     <table id="resultTable" style="display: none">
       <thead id="resultHeaders"></thead>
@@ -141,6 +341,29 @@
     </table>
 
     <script>
+      function showPopup(message, type = "info", duration = 1000) {
+        const popup = document.getElementById("popupMessage");
+        const text = document.getElementById("popupText");
+
+        // Reset classes
+        popup.className = "popup " + type;
+
+        text.innerText = message;
+        popup.style.display = "block";
+
+        setTimeout(() => {
+          popup.style.display = "none";
+        }, duration);
+      }
+      document.querySelectorAll('input[type="file"]').forEach((input) => {
+        input.addEventListener("change", function () {
+          const hasFile = this.files.length > 0;
+          this.style.setProperty(
+            "--button-bg",
+            hasFile ? "#f2dcdc" : "#ffffff"
+          );
+        });
+      });
       let cachedFormData = null;
 
       document
@@ -156,7 +379,7 @@
           });
 
           if (!response.ok) {
-            alert("Error processing LinkedIn matching.");
+            showPopup("Error processing LinkedIn matching.","error");
             return;
           }
 
@@ -170,6 +393,10 @@
 
           matchedBtn.disabled = false;
           unmatchedBtn.disabled = !unmatched || unmatched.length === 0;
+          document.getElementById("downloadMatchedBtn").style.display =
+            "inline-flex";
+          document.getElementById("downloadUnmatchedBtn").style.display =
+            "inline-flex";
 
           table.style.display = "table";
           headers.innerHTML = "";
@@ -203,7 +430,7 @@
         .getElementById("downloadMatchedBtn")
         .addEventListener("click", async function () {
           if (!cachedFormData) {
-            alert("Submit the form before downloading.");
+            showPopup("Submit the form before downloading.","info");
             return;
           }
 
@@ -217,7 +444,7 @@
           });
 
           if (!response.ok) {
-            alert("Failed to download matched Excel.");
+            showPopup("Failed to download matched Excel.","error");
             return;
           }
 
@@ -238,7 +465,7 @@
           const response = await fetch("/download_linkedin_unmatched");
 
           if (!response.ok) {
-            alert("Failed to download unmatched Excel.");
+            showPopup("Failed to download unmatched Excel.","error");
             return;
           }
 

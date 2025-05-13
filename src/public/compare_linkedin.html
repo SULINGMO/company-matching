@@ -11,7 +11,6 @@
       --aibp-dark: #2c2c2c;
       --aibp-light-gray: #f9fafc;
     }
-
     body {
       font-family: "Inter", "Segoe UI", Tahoma, sans-serif;
       background-color: var(--aibp-cream);
@@ -19,7 +18,6 @@
       margin: 0;
       padding: 0;
     }
-
     .navbar {
       display: flex;
       justify-content: space-between;
@@ -29,18 +27,15 @@
       border-bottom: 1px solid #eee;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
-
     .navbar-brand {
       font-size: 20px;
       font-weight: bold;
       color: var(--aibp-red);
     }
-
     .navbar-links {
       display: flex;
       gap: 30px;
     }
-
     .navbar-links a {
       color: var(--aibp-dark);
       text-decoration: none;
@@ -50,18 +45,15 @@
       border-radius: 6px;
       transition: background-color 0.2s ease, color 0.2s ease;
     }
-
     .navbar-links a:hover {
       background-color: var(--aibp-light-gray);
       color: var(--aibp-red);
     }
-
     h2 {
       text-align: center;
       margin: 40px 0 20px;
       color: var(--aibp-dark);
     }
-
     .upload-center-wrapper {
       display: flex;
       justify-content: center;
@@ -70,7 +62,6 @@
       flex-wrap: wrap;
       padding-bottom: 30px;
     }
-
     form {
       background-color: white;
       border: 1px solid #ddd;
@@ -80,18 +71,15 @@
       max-width: 500px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-
     label {
       display: block;
       margin-bottom: 14px;
       text-align: left;
     }
-
     input[type="file"] {
       font-size: 14px;
       width: 100%;
     }
-
     input[type="file"]::file-selector-button {
       background-color: white;
       color: var(--aibp-red);
@@ -101,11 +89,9 @@
       cursor: pointer;
       font-weight: 500;
     }
-
     input[type="file"]::file-selector-button:hover {
       background-color: #f2dcdc;
     }
-
     button {
       background-color: white;
       color: var(--aibp-red);
@@ -116,12 +102,10 @@
       cursor: pointer;
       margin-top: 10px;
     }
-
     button:hover {
       background-color: var(--aibp-red);
       color: white;
     }
-
     .upload-guidelines {
       background-color: white;
       border: 1px solid #a51916;
@@ -134,13 +118,11 @@
       color: #333;
       line-height: 1.7;
     }
-
     .upload-guidelines h3 {
       margin-top: 0;
       color: #a51916;
       font-size: 16px;
     }
-
     .upload-guidelines code {
       background-color: #f4f4f4;
       padding: 2px 6px;
@@ -148,11 +130,9 @@
       font-size: 13px;
       font-family: "Courier New", monospace;
     }
-
     .upload-guidelines.after-upload {
       border-color: #0e7c1f;
     }
-
     table {
       margin: 30px auto;
       width: 95%;
@@ -161,7 +141,6 @@
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
-
     th {
       background-color: #eef1f4;
       color: #1a1a1a;
@@ -171,40 +150,32 @@
       border-bottom: 1px solid #dcdfe3;
       text-align: left;
     }
-
     td {
       padding: 14px 16px;
       border-bottom: 1px solid #f0f0f0;
       font-size: 14px;
     }
-
     tr:nth-child(even) td {
       background-color: #f7f9fb;
     }
-
     tr:hover td {
       background-color: #edf3f8;
     }
-
     .highlight-100 {
       background-color: #fff9e0 !important;
     }
-
     .highlight-200 {
       background-color: #dbe7f1 !important;
     }
-
     .manual-added {
       background-color: #e0f3e0 !important;
     }
-
     #actionButtons {
       display: none;
       justify-content: center;
       gap: 12px;
       margin: 30px auto 60px;
     }
-
     .confirm-btn {
       background-color: white;
       color: #2c6e65;
@@ -215,12 +186,10 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     .confirm-btn:hover {
       background-color: #d6ece8;
       color: #2c6e65;
     }
-
     .unconfirm-btn {
       background-color: white;
       color: #9c5f19;
@@ -231,26 +200,9 @@
       cursor: pointer;
       font-size: 14px;
     }
-
     .unconfirm-btn:hover {
       background-color: #fce9d5;
       color: #9c5f19;
-    }
-
-    @media (max-width: 768px) {
-      .upload-center-wrapper {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      form,
-      .upload-guidelines {
-        width: 90%;
-      }
-
-      table {
-        font-size: 13px;
-      }
     }
   </style>
 </head>
@@ -289,9 +241,7 @@
   </div>
 
   <table id="resultTable" style="display:none;">
-    <thead>
-      <tr id="resultTableHeaders"></tr>
-    </thead>
+    <thead><tr id="resultTableHeaders"></tr></thead>
     <tbody id="resultsBody"></tbody>
   </table>
 
@@ -301,159 +251,194 @@
   </div>
 
   <script>
-    document.getElementById("uploadForm").addEventListener("submit", async function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-
-      const response = await fetch("/upload-linkedin", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-      displayResults(data);
-
-      const guide = document.getElementById("uploadGuidelines");
-      guide.classList.remove("before-upload");
-      guide.classList.add("after-upload");
-      guide.innerHTML = `
-        <h3>After Uploading</h3>
-        <p>Review the matched records carefully:</p>
-        <ul>
-          <li><strong>200% similarity</strong> matches are auto-confirmed.</li>
-          <li>For all other <strong>same name</strong> matches, please select and confirm them manually.</li>
-          <li>Click <em>"Confirm All"</em> after selecting relevant checkboxes.</li>
-        </ul>
-      `;
-    });
-
-    function displayResults(results) {
-      const fieldsToCheck = ['contact', 'address', 'linkedin_similar'];
-      const enabledFields = fieldsToCheck.filter(field =>
-        results.some(r => r[`matched_${field}`] && r[`matched_${field}`].length > 0)
-      );
-
-      const headersRow = document.getElementById("resultTableHeaders");
-      headersRow.innerHTML = "<th>LinkedIn Company</th>";
-      enabledFields.forEach(field => {
-        const name = field === "linkedin_similar" ? "Similar LinkedIn" : `${field.charAt(0).toUpperCase() + field.slice(1)} Match`;
-        const sim = field === "linkedin_similar" ? "LinkedIn Similarity" : `${field.charAt(0).toUpperCase() + field.slice(1)} Similarity`;
-        headersRow.innerHTML += `<th>${name}</th><th>${sim}</th>`;
-      });
-
-      const body = document.getElementById("resultsBody");
-      body.innerHTML = "";
-
-      results.forEach(res => {
-        const row = document.createElement("tr");
-        row.innerHTML = `<td>${res.linkedin}</td>`;
-
-        enabledFields.forEach(field => {
-          const matches = res[`matched_${field}`];
-          if (!matches || matches.length === 0) {
-            row.innerHTML += "<td></td><td></td>";
-            return;
-          }
-
-          if (field === "linkedin_similar") {
-            let names = "<td>", sims = "<td>";
-            matches.forEach(match => {
-              const cls = match.similarity === 2.0 ? "highlight-200" :
-                          match.similarity === 1.0 ? "manual-added" :
-                          match.fromAliasMatch ? "highlight-100" : "";
-              names += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                <input type="checkbox" class="match-checkbox"
-                       data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
-                ${match.name}</div>`;
-              sims += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
-                ${(match.similarity * 100).toFixed(0)}%</div>`;
-            });
-            row.innerHTML += names + "</td>" + sims + "</td>";
-          } else {
-            const match = matches[0];
-            const cls = match.similarity === 2.0 ? "highlight-200" :
-                        match.similarity === 1.0 ? "manual-added" :
-                        match.fromAliasMatch ? "highlight-100" : "";
-            row.innerHTML += `
-              <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                <input type="checkbox" class="match-checkbox"
-                       data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
-                ${match.name}</div></td>
-              <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
-                ${(match.similarity * 100).toFixed(0)}%</div></td>
-            `;
-          }
-        });
-
-        body.appendChild(row);
-      });
-
-      document.getElementById("resultTable").style.display = "table";
-      document.getElementById("actionButtons").style.display = "flex";
+    function getHighlightClass(match) {
+      if (match.similarity === 2.0) return "highlight-200";
+      else if (match.similarity === 1.0) return "manual-added";
+      else if (match.fromAliasMatch) return "highlight-100";
+      return "";
     }
 
-    function confirmAll() {
-    const checkboxes = document.querySelectorAll(".match-checkbox:checked");
-    const grouped = {};
+     document.getElementById("uploadForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const formData = new FormData(this);
 
-    checkboxes.forEach(cb => {
-      const speaker = cb.dataset.speaker;
-      const type = cb.dataset.type;
-      const name = cb.dataset.name;
-
-      if (!grouped[speaker]) {
-        grouped[speaker] = { speaker: speaker, fields: [] };
-      }
-
-      if (!grouped[speaker][`matched_${type}`]) {
-        grouped[speaker][`matched_${type}`] = [];
-        grouped[speaker].fields.push(type);
-      }
-
-      grouped[speaker][`matched_${type}`].push(name);
+    const response = await fetch("/upload-linkedin", {
+      method: "POST",
+      body: formData,
     });
 
-    const promises = Object.values(grouped).map(payload =>
-      fetch("/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+    const data = await response.json();
+    displayResults(data);
+
+    const guide = document.getElementById("uploadGuidelines");
+    guide.classList.remove("before-upload");
+    guide.classList.add("after-upload");
+    guide.innerHTML = `
+      <h3>After Uploading</h3>
+      <p>Review the matched records carefully:</p>
+      <ul>
+        <li><strong>200% similarity</strong> matches are auto-confirmed.</li>
+        <li>For all other <strong>same name</strong> matches, please select and confirm them manually.</li>
+        <li>Click <em>\"Confirm All\"</em> after selecting relevant checkboxes.</li>
+      </ul>
+    `;
+  });
+
+  function displayResults(results) {
+    const fieldsToCheck = ['contact', 'address', 'linkedin_similar'];
+    const enabledFields = fieldsToCheck.filter(field =>
+      results.some(r => r[`matched_${field}`] && r[`matched_${field}`].length > 0)
     );
 
-    Promise.all(promises).then(() => alert("Selected matches confirmed!"));
-  }
+    const headersRow = document.getElementById("resultTableHeaders");
+    headersRow.innerHTML = "<th>LinkedIn Company</th>";
+    enabledFields.forEach(field => {
+      const name = field === "linkedin_similar" ? "Similar LinkedIn" : `${field.charAt(0).toUpperCase() + field.slice(1)} Match`;
+      const sim = field === "linkedin_similar" ? "LinkedIn Similarity" : `${field.charAt(0).toUpperCase() + field.slice(1)} Similarity`;
+      headersRow.innerHTML += `<th>${name}</th><th>${sim}</th>`;
+    });
 
+    const body = document.getElementById("resultsBody");
+    body.innerHTML = "";
 
-    function unconfirmAll() {
-      const grouped = {};
-      document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
-        const speaker = cb.dataset.speaker;
-        const type = cb.dataset.type;
-        const name = cb.dataset.name;
+    results.forEach(res => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${res.linkedin}</td>`;
 
-        if (!grouped[speaker]) {
-          grouped[speaker] = { speaker: speaker, fields: [] };
+      enabledFields.forEach(field => {
+        const matches = res[`matched_${field}`];
+        if (!matches || matches.length === 0) {
+          row.innerHTML += "<td></td><td></td>";
+          return;
         }
 
-        if (!grouped[speaker][`matched_${type}`]) {
-          grouped[speaker][`matched_${type}`] = [];
-          grouped[speaker].fields.push(type);
+        if (field === "linkedin_similar") {
+          let names = "<td>", sims = "<td>";
+          matches.forEach(match => {
+            const cls = getHighlightClass(match);
+            names += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+              <input type="checkbox" class="match-checkbox"
+                     data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
+              ${match.name}</div>`;
+            sims += `<div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
+              ${(match.similarity * 100).toFixed(0)}%</div>`;
+          });
+          row.innerHTML += names + "</td>" + sims + "</td>";
+        } else {
+          const match = matches[0];
+          const cls = getHighlightClass(match);
+          row.innerHTML += `
+            <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+              <input type="checkbox" class="match-checkbox"
+                     data-type="${field}" data-speaker="${res.linkedin}" data-name="${match.name}" />
+              ${match.name}</div></td>
+            <td><div class="${cls}" style="padding: 6px; border: 1px solid #ddd; border-radius: 4px; text-align:center;">
+              ${(match.similarity * 100).toFixed(0)}%</div></td>
+          `;
         }
-
-        grouped[speaker][`matched_${type}`].push(name);
       });
 
-      const promises = Object.values(grouped).map(payload =>
-        fetch("/unconfirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      );
+      body.appendChild(row);
+    });
 
-      Promise.all(promises).then(() => alert("Selected matches unconfirmed!"));
+    document.getElementById("resultTable").style.display = "table";
+    document.getElementById("actionButtons").style.display = "flex";
+  }
+
+function confirmAll() {
+  const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+  const grouped = {};
+
+  checkboxes.forEach(cb => {
+    const speaker = cb.dataset.speaker;
+    const type = cb.dataset.type;
+    const name = cb.dataset.name;
+
+    if (!grouped[speaker]) {
+      grouped[speaker] = { speaker: speaker, fields: [] };
     }
+
+    if (!grouped[speaker][`matched_${type}`]) {
+      grouped[speaker][`matched_${type}`] = [];
+      grouped[speaker].fields.push(type);
+    }
+
+    grouped[speaker][`matched_${type}`].push(name);
+  });
+
+  const promises = Object.values(grouped).map(payload =>
+    fetch("/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(() => {
+      // ✅ Update color on all confirmed checkboxes
+      document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
+        const parent = cb.closest("div");
+        parent.classList.remove("manual-added", "highlight-200", "highlight-100");
+        parent.classList.add("highlight-100");
+
+        const percentBox = parent.parentElement.nextElementSibling?.querySelector("div");
+        if (percentBox) {
+          percentBox.classList.remove("manual-added", "highlight-200", "highlight-100");
+          percentBox.classList.add("highlight-100");
+        }
+
+        cb.checked = false;
+      });
+    })
+  );
+
+  Promise.all(promises).then(() => alert("Selected matches confirmed!"));
+}
+
+
+
+  function unconfirmAll() {
+  const checkboxes = document.querySelectorAll(".match-checkbox:checked");
+  const grouped = {};
+
+  checkboxes.forEach(cb => {
+    const speaker = cb.dataset.speaker;
+    const type = cb.dataset.type;
+    const name = cb.dataset.name;
+
+    if (!grouped[speaker]) {
+      grouped[speaker] = { speaker: speaker, fields: [] };
+    }
+
+    if (!grouped[speaker][`matched_${type}`]) {
+      grouped[speaker][`matched_${type}`] = [];
+      grouped[speaker].fields.push(type);
+    }
+
+    grouped[speaker][`matched_${type}`].push(name);
+  });
+
+  const promises = Object.values(grouped).map(payload =>
+    fetch("/unconfirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(() => {
+      // ❌ Remove color on all unchecked boxes
+      document.querySelectorAll(".match-checkbox:checked").forEach(cb => {
+        const parent = cb.closest("div");
+        parent.classList.remove("highlight-100");
+
+        const percentBox = parent.parentElement.nextElementSibling?.querySelector("div");
+        if (percentBox) {
+          percentBox.classList.remove("highlight-100");
+        }
+
+        cb.checked = false;
+      });
+    })
+  );
+
+  Promise.all(promises).then(() => alert("Selected matches unconfirmed!"));
+}
+
   </script>
 </body>
 </html>

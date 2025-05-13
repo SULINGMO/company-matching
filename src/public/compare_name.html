@@ -544,132 +544,116 @@
       }
 
       function displayResults(results, availableColumns) {
-        const resultsBody = document.getElementById("resultsBody");
-        resultsBody.innerHTML = "";
+      const resultsBody = document.getElementById("resultsBody");
+      resultsBody.innerHTML = "";
 
-        results.forEach((result) => {
-          const row = document.createElement("tr");
-          let rowData = `<td>${result.speaker || "None"}</td>`;
+      results.forEach((result) => {
+        const row = document.createElement("tr");
+        let rowData = `<td>${result.speaker || "None"}</td>`;
 
-          function generateCellContent(item, type, speaker) {
-            if (!item)
-              return { nameCell: "<td></td>", similarityCell: "<td></td>" };
+        function generateCellContent(item, type, speaker) {
+          if (!item)
+            return { nameCell: "<td></td>", similarityCell: "<td></td>" };
+
+          let highlightClass = "";
+          if (item.similarity === 2) {
+            highlightClass = "highlight-200";
+          } else if (item.fromAliasMatch) {
+            highlightClass = "highlight-100";
+          }
+
+          const matchId = `${speaker}-${type}-${item.name}`.replace(/\s+/g, "_").toLowerCase();
+
+          return {
+            nameCell: `
+              <td style="vertical-align: top;">
+                <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+                  <input type="checkbox" class="match-checkbox" data-type="${type}" data-speaker="${speaker}" data-name="${item.name}" data-id="${matchId}">
+                  ${item.name}
+                </div>
+              </td>
+            `,
+            similarityCell: `
+              <td style="vertical-align: top;">
+                <div class="${highlightClass}" data-id="${matchId}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+                  ${(item.similarity * 100).toFixed(0)}%
+                </div>
+              </td>
+            `,
+          };
+        }
+
+        if (availableColumns.includes("account")) {
+          const acc = result.matched_account?.[0];
+          const { nameCell, similarityCell } = generateCellContent(acc, "account", result.speaker);
+          rowData += nameCell + similarityCell;
+        }
+
+        if (availableColumns.includes("contact")) {
+          const con = result.matched_contact?.[0];
+          const { nameCell, similarityCell } = generateCellContent(con, "contact", result.speaker);
+          rowData += nameCell + similarityCell;
+        }
+
+        if (availableColumns.includes("address")) {
+          const addr = result.matched_address?.[0];
+          const { nameCell, similarityCell } = generateCellContent(addr, "address", result.speaker);
+          rowData += nameCell + similarityCell;
+        }
+
+        if (availableColumns.includes("linkedin")) {
+          const matches = result.matched_linkedin || [];
+          let nameCell = '<td style="vertical-align: top;">';
+          let similarityCell = '<td style="vertical-align: top;">';
+
+          const seenNames = new Set();
+          matches.forEach((item) => {
+            if (seenNames.has(item.name)) return;
+            seenNames.add(item.name);
 
             let highlightClass = "";
-            let backgroundColor = "";
-
             if (item.similarity === 2) {
-              highlightClass = "highlight-200"; // Light Blue for 200%
+              highlightClass = "highlight-200";
             } else if (item.fromAliasMatch) {
-              highlightClass = "highlight-100"; // Yellow
+              highlightClass = "highlight-100";
             }
 
-            return {
-              nameCell: `
-          <td style="vertical-align: top; background-color: ${backgroundColor};">
-            <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
-              <input type="checkbox" class="match-checkbox" data-type="${type}" data-speaker="${speaker}" data-name="${item.name}">
-              ${item.name}
-            </div>
-          </td>
-        `,
-              similarityCell: `
-          <td style="vertical-align: top; background-color: ${backgroundColor};">
-          <div class="${highlightClass}"
-     data-speaker="${result.speaker}"
-     data-type="linkedin"
-     data-name="${item.name}"
-     style="...">
-  ${(item.similarity * 100).toFixed(0)}%
-</div>
+            const matchId = `${result.speaker}-linkedin-${item.name}`.replace(/\s+/g, "_").toLowerCase();
 
-          </td>
-        `,
-            };
-          }
+            nameCell += `
+              <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox"
+                       class="match-checkbox"
+                       data-type="linkedin"
+                       data-speaker="${result.speaker}"
+                       data-name="${item.name}"
+                       data-id="${matchId}">
+                ${item.name}
+              </div>
+            `;
+            similarityCell += `
+              <div class="${highlightClass}"
+                   data-id="${matchId}"
+                   style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
+                ${(item.similarity * 100).toFixed(0)}%
+              </div>
+            `;
+          });
 
-          if (availableColumns.includes("account")) {
-            const acc = result.matched_account?.[0];
-            const { nameCell, similarityCell } = generateCellContent(
-              acc,
-              "account",
-              result.speaker
-            );
-            rowData += nameCell + similarityCell;
-          }
+          nameCell += "</td>";
+          similarityCell += "</td>";
 
-          if (availableColumns.includes("contact")) {
-            const con = result.matched_contact?.[0];
-            const { nameCell, similarityCell } = generateCellContent(
-              con,
-              "contact",
-              result.speaker
-            );
-            rowData += nameCell + similarityCell;
-          }
+          rowData += nameCell + similarityCell;
+        }
 
-          if (availableColumns.includes("address")) {
-            const addr = result.matched_address?.[0];
-            const { nameCell, similarityCell } = generateCellContent(
-              addr,
-              "address",
-              result.speaker
-            );
-            rowData += nameCell + similarityCell;
-          }
+        row.innerHTML = rowData;
+        resultsBody.appendChild(row);
+      });
 
-          if (availableColumns.includes("linkedin")) {
-            const matches = result.matched_linkedin || [];
-            let nameCell = '<td style="vertical-align: top;">';
-            let similarityCell = '<td style="vertical-align: top;">';
+      document.getElementById("resultTable").style.display = "block";
+    }
 
-            const seenNames = new Set();
-            matches.forEach((item) => {
-              if (seenNames.has(item.name)) return;
-              seenNames.add(item.name);
-
-              let highlightClass = "";
-              if (item.similarity === 2) {
-                highlightClass = "highlight-200";
-              } else if (item.fromAliasMatch) {
-                highlightClass = "highlight-100";
-              }
-
-              nameCell += `
-          <div class="${highlightClass}" style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; gap: 6px;">
-            <input type="checkbox"
-                   class="match-checkbox"
-                   data-type="linkedin"
-                   data-speaker="${result.speaker}"
-                   data-name="${item.name}">
-            ${item.name}
-          </div>
-        `;
-              similarityCell += `
-  <div class="${highlightClass}"
-       data-speaker="${result.speaker}"
-       data-type="linkedin"
-       data-name="${item.name}"
-       style="padding: 6px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; text-align: center;">
-    ${(item.similarity * 100).toFixed(0)}%
-  </div>
-`;
-            });
-
-            nameCell += "</td>";
-            similarityCell += "</td>";
-
-            rowData += nameCell + similarityCell;
-          }
-
-          row.innerHTML = rowData;
-          resultsBody.appendChild(row);
-        });
-
-        document.getElementById("resultTable").style.display = "block";
-      }
-
-      function confirmAllMatches() {
+     function confirmAllMatches() {
         const checkboxes = document.querySelectorAll(".match-checkbox:checked");
         const requests = [];
 
@@ -682,6 +666,7 @@
           const speaker = cb.getAttribute("data-speaker");
           const type = cb.getAttribute("data-type");
           const name = cb.getAttribute("data-name");
+          const matchId = `${speaker}-${type}-${name}`.replace(/\s+/g, "_").toLowerCase();
 
           const payload = {
             speaker: speaker,
@@ -695,17 +680,13 @@
             body: JSON.stringify(payload),
           }).then((response) => {
             if (response.ok) {
-              // ✅ Highlight the name cell
               const nameDiv = cb.closest("div");
-              nameDiv?.classList.remove("highlight-200");
+              nameDiv?.classList.remove("highlight-200", "highlight-100");
               nameDiv?.classList.add("highlight-100");
 
-              // ✅ Highlight the similarity cell (must be sibling in next <td>)
-              const similarityCell = nameDiv?.closest("td")?.nextElementSibling;
-              const similarityDiv = similarityCell?.querySelector("div");
-
-              similarityDiv?.classList.remove("highlight-200");
-              similarityDiv?.classList.add("highlight-100");
+              const simDiv = document.querySelector(`div[data-id="${matchId}"]`);
+              simDiv?.classList.remove("highlight-200", "highlight-100");
+              simDiv?.classList.add("highlight-100");
             }
           });
 
@@ -719,7 +700,9 @@
           })
           .catch(() => showPopup("One or more confirmations failed.", "error"));
       }
-      function unconfirmAllMatches() {
+
+
+        function unconfirmAllMatches() {
         const checkboxes = document.querySelectorAll(".match-checkbox:checked");
         const groupedPayloads = {};
 
@@ -732,6 +715,7 @@
           const speaker = cb.getAttribute("data-speaker");
           const type = cb.getAttribute("data-type");
           const name = cb.getAttribute("data-name");
+          const matchId = `${speaker}-${type}-${name}`.replace(/\s+/g, "_").toLowerCase();
 
           if (!groupedPayloads[speaker]) {
             groupedPayloads[speaker] = { speaker, fields: [] };
@@ -757,25 +741,23 @@
               );
 
               checkboxesToClear.forEach((cb) => {
+                const speaker = cb.getAttribute("data-speaker");
+                const type = cb.getAttribute("data-type");
+                const name = cb.getAttribute("data-name");
+                const matchId = `${speaker}-${type}-${name}`.replace(/\s+/g, "_").toLowerCase();
+
                 const nameDiv = cb.closest("div");
-                const simDiv = nameDiv
-                  ?.closest("td")
-                  ?.nextElementSibling?.querySelector("div");
+                const simDiv = document.querySelector(`div[data-id="${matchId}"]`);
 
                 nameDiv?.classList.remove("highlight-100", "highlight-200");
                 simDiv?.classList.remove("highlight-100", "highlight-200");
 
-                const similarityText = simDiv?.innerText
-                  ?.replace("%", "")
-                  .trim();
+                const similarityText = simDiv?.innerText?.replace("%", "").trim();
                 const similarity = parseFloat(similarityText) / 100;
 
                 if (similarity === 2.0) {
                   nameDiv?.classList.add("highlight-200");
                   simDiv?.classList.add("highlight-200");
-                } else if (similarity === 1.0) {
-                  nameDiv?.classList.add("manual-added");
-                  simDiv?.classList.add("manual-added");
                 }
 
                 cb.checked = false;
@@ -786,9 +768,7 @@
 
         Promise.all(requests)
           .then(() => showPopup("Selected matches unconfirmed!", "success"))
-          .catch(() =>
-            showPopup("One or more unconfirmations failed.", "error")
-          );
+          .catch(() => showPopup("One or more unconfirmations failed.", "error"));
       }
     </script>
     <div id="popupMessage" class="popup" style="display: none">

@@ -25,7 +25,7 @@ def upload_file():
         return jsonify({"error": "Speaker list is required"}), 400
 
     try:
-        df = pd.read_excel(speaker_file)
+        df = pd.read_excel(speaker_file, dtype=str)
         df = df.dropna(subset=['Company']).drop_duplicates(subset=['Company'])
         uploaded_files['speaker'] = df
     except Exception as e:
@@ -80,7 +80,10 @@ def upload_file():
 
                 # Step 1: Exact match
                 for name in df[column]:
-                    if speaker_name.strip().lower() == name.strip().lower():  # exact match (case insensitive)
+                    if isinstance(speaker_name, str) and isinstance(name, str):
+                     if speaker_name.strip().lower() == name.strip().lower():
+        # your match logic here
+# exact match (case insensitive)
                         matches.append({
                             'name': name,
                             'similarity': 2.0,
@@ -90,8 +93,9 @@ def upload_file():
                 # Step 2: Alias match
                 if not matches:
                     for name in df[column]:
-                        if name.strip() in speaker_aliases:
-                            similarity = calculate_weighted_simhash(speaker_name, name, categorize_token, weights)
+                        name_str = str(name).strip()
+                        if name_str  in speaker_aliases:
+                            similarity = calculate_weighted_simhash(str(speaker_name), name_str, categorize_token, weights)
                             matches.append({
                                 'name': name,
                                 'similarity': round(similarity, 2),
